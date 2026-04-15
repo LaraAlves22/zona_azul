@@ -1,6 +1,7 @@
-
+import { useNavigate } from "react-router-dom";
 console.log("A Home carregou!");
-export default function Home({ onNavigate }) {
+export default function Home() {
+    const navigate = useNavigate()
 
     return (
         <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
@@ -12,12 +13,12 @@ export default function Home({ onNavigate }) {
 
             <div className="mt-6 space-y-3">
                 <button
-                    onClick={() => onNavigate('login')}
+                    onClick={() => navigate('/login')}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition cursor-pointer">
                     Login
                 </button>
                 <button
-                    onClick={() => onNavigate('cadastro')}
+                    onClick={() => navigate('/cadastro')}
                     className="w-full border-2 border-slate-200 text-slate-600 font-semibold py-3 rounded-lg hover:bg-slate-50 transition cursor-pointer">
                     Cadastrar-se
                 </button>
