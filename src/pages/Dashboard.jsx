@@ -535,7 +535,7 @@ function PgHistorico({usuario}){
   )
 }
 
-function PgNotifs({usuario}){
+function PgNotifs({usuario,onIrEstacionar}){
   const [notifs,setNotifs]=useState([])
   const carregar=()=>{api.get("/notificacoes/"+usuario.id).then(r=>setNotifs(r.data||[])).catch(()=>{})}
   useEffect(()=>{carregar()},[])
@@ -543,27 +543,28 @@ function PgNotifs({usuario}){
   return(
     <div className="space-y-6">
       <h2 className="text-2xl font-extrabold text-slate-800">Notificacoes</h2>
-      {notifs.length===0?<div className="bg-white p-10 rounded-xl border border-slate-200 text-center"><p className="text-slate-400">Nenhuma notificacao</p></div>:<div className="space-y-3">{notifs.map(n=><div key={n.id} className={`p-5 rounded-xl border bg-white transition ${n.lido?"opacity-50 border-slate-100":n.tipo==="multa"?"border-red-200":"border-amber-200"}`}><div className="flex justify-between items-start"><div className="flex-1"><span className={`text-[10px] font-bold uppercase tracking-wider ${n.tipo==="multa"?"text-red-500":"text-amber-500"}`}>{n.tipo}</span><p className="text-sm text-slate-700 mt-1">{n.mensagem}</p><p className="text-[11px] text-slate-400 mt-2">{new Date(n.criado_em).toLocaleString("pt-BR")}</p></div>{!n.lido&&<button onClick={()=>marcarLido(n.id)} className="text-xs text-blue-600 cursor-pointer font-semibold whitespace-nowrap ml-4 hover:text-blue-800">Marcar lido</button>}</div></div>)}</div>}
+      {notifs.length===0?<div className="bg-white p-10 rounded-xl border border-slate-200 text-center"><p className="text-slate-400">Nenhuma notificacao</p></div>:<div className="space-y-3">{notifs.map(n=><div key={n.id} className={`p-5 rounded-xl border bg-white transition ${n.lido?"opacity-50 border-slate-100":n.tipo==="multa"?"border-red-200":"border-amber-200"}`}><div className="flex justify-between items-start"><div className="flex-1"><span className={`text-[10px] font-bold uppercase tracking-wider ${n.tipo==="multa"?"text-red-500":"text-amber-500"}`}>{n.tipo}</span><p className="text-sm text-slate-700 mt-1">{n.mensagem}</p>{n.tipo==="fiscal"&&!n.lido&&<button onClick={()=>onIrEstacionar()} className="mt-2 bg-blue-600 text-white text-xs px-4 py-1.5 rounded-lg cursor-pointer hover:bg-blue-700 font-semibold">Estacionar agora</button>}<p className="text-[11px] text-slate-400 mt-2">{new Date(n.criado_em).toLocaleString("pt-BR")}</p></div>{!n.lido&&<button onClick={()=>marcarLido(n.id)} className="text-xs text-blue-600 cursor-pointer font-semibold whitespace-nowrap ml-4 hover:text-blue-800">Marcar lido</button>}</div></div>)}</div>}
     </div>
   )
 }
 
 function PgConsulta({usuario}){
-  const [placa,setPlaca]=useState(""),[res,setRes]=useState(null),[notif,setNotif]=useState(false),[msg,setMsg]=useState(""),[zonas,setZonas]=useState([])
+  const [placa,setPlaca]=useState(""),[res,setRes]=useState(null),[msg,setMsg]=useState(""),[zonas,setZonas]=useState([]),[zonaSel,setZonaSel]=useState("")
   useEffect(()=>{api.get("/zonas").then(r=>setZonas(r.data||[])).catch(()=>{})},[])
-  const consultar=async()=>{setNotif(false);setMsg("");try{const{data}=await api.get("/sessoes/verificar/"+placa);setRes(data)}catch(err){setMsg("Erro na consulta")}}
-  const notificar=async()=>{try{await api.post("/sessoes/notificar",{placa:res?.placa||placa,fiscal_id:usuario.id,zona_id:zonas[0]?.id});setNotif(true)}catch(err){setMsg(err.response?.data?.erro||"Erro")}}
+  const consultar=async()=>{setMsg("");try{const{data}=await api.get("/sessoes/verificar/"+placa.toUpperCase().trim());setRes(data)}catch(err){setMsg("Erro na consulta")}}
+  const notificar=async()=>{try{const{data}=await api.post("/sessoes/notificar",{placa:res?.placa||placa,fiscal_id:usuario.id,zona_id:zonaSel||zonas[0]?.id});setMsg(data.mensagem||"Motorista notificado");consultar()}catch(err){setMsg(err.response?.data?.erro||"Erro ao notificar")}}
   return(
     <div className="space-y-6">
       <h2 className="text-2xl font-extrabold text-slate-800">Consultar Veiculo</h2>
-      <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm"><div className="flex gap-3"><input placeholder="Digite a placa do veiculo" maxLength={7} className="flex-1 border border-slate-200 p-4 rounded-xl text-2xl font-mono uppercase tracking-[0.2em] text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={placa} onChange={e=>setPlaca(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,7))}/><button onClick={consultar} className="bg-blue-600 text-white px-10 rounded-xl font-semibold cursor-pointer hover:bg-blue-700 transition shadow-lg shadow-blue-600/20">Consultar</button></div></div>
-      {msg&&<p className="text-sm p-3 rounded-lg bg-red-50 text-red-600 border border-red-200">{msg}</p>}
+      <div className="bg-white p-6 rounded-xl border border-slate-200"><div className="flex gap-3"><input placeholder="Digite a placa do veiculo" maxLength={7} className="flex-1 border border-slate-200 p-4 rounded-xl text-2xl font-mono uppercase tracking-[0.2em] text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={placa} onChange={e=>setPlaca(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,7))}/><button onClick={consultar} className="bg-blue-600 text-white px-10 rounded-xl font-semibold cursor-pointer hover:bg-blue-700 transition shadow-lg shadow-blue-600/20">Consultar</button></div></div>
+      {msg&&<p className={`text-sm p-3 rounded-lg ${msg.includes("Erro")?"bg-red-50 text-red-600 border border-red-200":"bg-blue-50 text-blue-600 border border-blue-200"}`}>{msg}</p>}
       {res&&(<div className={`p-8 rounded-xl text-center border-2 ${res.status==="regular"?"border-emerald-200 bg-emerald-50/50":"border-red-200 bg-red-50/50"}`}>
         <div className={`w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-4 ${res.status==="regular"?"bg-emerald-100":"bg-red-100"}`}><svg className={`w-10 h-10 ${res.status==="regular"?"text-emerald-600":"text-red-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>{res.status==="regular"?<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>:<path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>}</svg></div>
         <p className={`text-4xl font-black tracking-wider ${res.status==="regular"?"text-emerald-700":"text-red-700"}`}>{res.status==="regular"?"REGULAR":"IRREGULAR"}</p>
         <p className="text-slate-600 font-mono text-2xl mt-2 tracking-wider">{res.placa||placa}</p>
-        {res.sessao&&<div className="mt-3 text-sm text-slate-500 space-y-0.5"><p>{res.sessao.modelo}</p><p>Zona: {res.sessao.zona_nome}</p><p>Expira: {new Date(res.sessao.fim).toLocaleString("pt-BR")}</p></div>}
-        {res.status==="irregular"&&(<div className="mt-6">{notif?<div className="inline-block bg-amber-50 border border-amber-200 rounded-xl p-4"><p className="text-amber-700 font-semibold">Motorista notificado</p><p className="text-amber-600 text-sm mt-1">10 minutos para renovar. Multa de R$3,00 apos o prazo.</p></div>:<button onClick={notificar} className="bg-red-600 text-white px-8 py-3 rounded-xl font-semibold cursor-pointer hover:bg-red-700 transition shadow-lg shadow-red-600/20">Notificar motorista (10 min para renovar)</button>}</div>)}
+        {res.sessao&&<div className="mt-3 text-sm text-slate-500 space-y-0.5"><p>{res.sessao.modelo} · {res.sessao.cor}</p><p>Zona: {res.sessao.zona_nome}</p><p>Expira: {new Date(res.sessao.fim).toLocaleString("pt-BR")}</p></div>}
+        {res.mensagem&&res.status==="irregular"&&<p className="mt-2 text-sm text-slate-500">{res.mensagem}</p>}
+        {res.status==="irregular"&&(<div className="mt-6">{res.notificacao_pendente?<div className="inline-block bg-amber-50 border border-amber-200 rounded-xl p-4"><p className="text-amber-700 font-semibold">Notificacao ja enviada</p><p className="text-amber-600 text-sm mt-1">Aguardando prazo de 10 minutos. Multa sera aplicada automaticamente se nao regularizar.</p></div>:res.veiculo?<div className="space-y-3"><select className="w-full border border-slate-200 p-3 rounded-xl text-sm" value={zonaSel} onChange={e=>setZonaSel(e.target.value)}><option value="">Selecione a zona da irregularidade</option>{zonas.map(z=><option key={z.id} value={z.id}>{z.nome} - R${parseFloat(z.preco_hora).toFixed(2)}/h</option>)}</select><button onClick={notificar} disabled={!zonaSel} className={`w-full px-8 py-3 rounded-xl font-semibold cursor-pointer transition shadow-lg ${zonaSel?"bg-red-600 text-white hover:bg-red-700 shadow-red-600/20":"bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"}`}>Notificar motorista (10 min para renovar)</button></div>:<p className="text-slate-400 text-sm">Veiculo nao cadastrado no sistema</p>}</div>)}
       </div>)}
     </div>
   )
@@ -667,7 +668,7 @@ export default function Dashboard(){
   const logout=()=>{localStorage.clear();navigate("/")}
   if(!usuario||!page)return null
   const perfil=usuario.perfil
-  const render=()=>{switch(page){case "inicio":return <PgInicio usuario={usuario} saldo={saldo}/>;case "veiculos":return <PgVeiculos usuario={usuario}/>;case "estacionar":return <PgEstacionar usuario={usuario} saldo={saldo} setSaldo={setSaldo}/>;case "carteira":return <PgCarteira usuario={usuario} saldo={saldo} setSaldo={setSaldo}/>;case "historico":return <PgHistorico usuario={usuario}/>;case "notifs":return <PgNotifs usuario={usuario}/>;case "consulta":return <PgConsulta usuario={usuario}/>;case "pendentes":return <PgPendentes/>;case "resumo":return <PgResumo/>;case "movimentacao":return <PgMovimentacao/>;case "ger-zonas":return <PgGerZonas/>;case "fiscais":return <PgFiscais/>;default:return null}}
+  const render=()=>{switch(page){case "inicio":return <PgInicio usuario={usuario} saldo={saldo}/>;case "veiculos":return <PgVeiculos usuario={usuario}/>;case "estacionar":return <PgEstacionar usuario={usuario} saldo={saldo} setSaldo={setSaldo}/>;case "carteira":return <PgCarteira usuario={usuario} saldo={saldo} setSaldo={setSaldo}/>;case "historico":return <PgHistorico usuario={usuario}/>;case "notifs":return <PgNotifs usuario={usuario} onIrEstacionar={()=>setPage("estacionar")}/>;case "consulta":return <PgConsulta usuario={usuario}/>;case "pendentes":return <PgPendentes/>;case "resumo":return <PgResumo/>;case "movimentacao":return <PgMovimentacao/>;case "ger-zonas":return <PgGerZonas/>;case "fiscais":return <PgFiscais/>;default:return null}}
 
       return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#f1f5f9]">
