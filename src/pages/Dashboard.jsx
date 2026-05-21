@@ -572,52 +572,66 @@ function PgConsulta({usuario}){
 
 function PgPendentes(){
   const [fisc,setFisc]=useState([])
-  useEffect(()=>{api.get("/fiscalizacoes").then(r=>setFisc((r.data||[]).filter(f=>f.resultado==="irregular"))).catch(()=>{})},[])
+  useEffect(()=>{api.get("/fiscalizacoes").then(r=>setFisc(r.data||[])).catch(()=>{})},[])
   return(
     <div className="space-y-6">
       <h2 className="text-2xl font-extrabold text-slate-800">Avisos Pendentes</h2>
-      {fisc.length===0?<div className="bg-white p-10 rounded-xl border border-slate-200 text-center"><p className="text-slate-400">Nenhum aviso pendente</p></div>:<div className="bg-white rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-50">{fisc.map(f=><div key={f.id} className="flex items-center justify-between px-6 py-4"><div><p className="font-mono font-bold text-slate-800">{f.placa}</p><p className="text-sm text-slate-400">{f.zona_nome} · {f.fiscal_nome}</p></div><div className="text-right"><span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">Irregular</span><p className="text-[11px] text-slate-400 mt-1">{new Date(f.criado_em).toLocaleString("pt-BR")}</p></div></div>)}</div>}
+      {fisc.length===0?<div className="bg-white p-10 rounded-2xl border border-slate-200 text-center shadow-sm"><p className="text-slate-400">Nenhum aviso</p></div>:<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-50">{fisc.map(f=><div key={f.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50/50 transition"><div className="flex items-center gap-4"><div className={`w-10 h-10 rounded-xl flex items-center justify-center ${f.status_atual==="regularizado"?"bg-emerald-50":"f.aguardando_prazo"?"bg-amber-50":"bg-red-50"}`}><span className={`font-mono font-bold text-xs ${f.status_atual==="regularizado"?"text-emerald-600":f.aguardando_prazo?"text-amber-600":"text-red-600"}`}>P</span></div><div><p className="font-mono font-bold text-slate-800">{f.placa}</p><p className="text-sm text-slate-400">{f.zona_nome} · {f.fiscal_nome}</p></div></div><div className="text-right"><span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${f.status_atual==="regularizado"?"bg-emerald-50 text-emerald-600 border border-emerald-200":f.aguardando_prazo?"bg-amber-50 text-amber-600 border border-amber-200":"bg-red-50 text-red-600 border border-red-200"}`}>{f.status_atual==="regularizado"?"Regularizado":f.aguardando_prazo?"Aguardando":"Irregular"}</span><p className="text-[11px] text-slate-400 mt-1">{new Date(f.criado_em).toLocaleString("pt-BR")}</p></div></div>)}</div>}
     </div>
   )
 }
 
 function PgResumo(){
-  const [sessoes,setSessoes]=useState([]),[fisc,setFisc]=useState([])
-  useEffect(()=>{api.get("/sessoes").then(r=>setSessoes(r.data||[])).catch(()=>{});api.get("/fiscalizacoes").then(r=>setFisc(r.data||[])).catch(()=>{})},[])
-  const hoje=new Date().toISOString().slice(0,10),sH=sessoes.filter(s=>s.criado_em?.startsWith(hoje)),fH=fisc.filter(f=>f.criado_em?.startsWith(hoje)),rec=sH.reduce((a,s)=>a+parseFloat(s.valor_total||0),0)
+  const [sessoes,setSessoes]=useState([]),[fisc,setFisc]=useState([]),[contagem,setContagem]=useState({total:0,irregulares:0,regularizados:0})
+  useEffect(()=>{
+    api.get("/sessoes").then(r=>setSessoes(r.data||[])).catch(()=>{})
+    api.get("/fiscalizacoes").then(r=>setFisc(r.data||[])).catch(()=>{})
+    api.get("/fiscalizacoes/contagem").then(r=>setContagem(r.data)).catch(()=>{})
+  },[])
+  const hoje=new Date().toISOString().slice(0,10),sH=sessoes.filter(s=>s.criado_em?.startsWith(hoje)),rec=sH.reduce((a,s)=>a+parseFloat(s.valor_total||0),0)
   return(
     <div className="space-y-6">
       <h2 className="text-2xl font-extrabold text-slate-800">Resumo do Dia</h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Sessoes</p><p className="text-3xl font-extrabold text-slate-800 mt-2">{sH.length}</p></div>
-        <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Receita</p><p className="text-3xl font-extrabold text-emerald-600 mt-2">R$ {rec.toFixed(2)}</p></div>
-        <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Fiscalizacoes</p><p className="text-3xl font-extrabold text-blue-600 mt-2">{fH.length}</p></div>
-        <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Irregulares</p><p className="text-3xl font-extrabold text-red-500 mt-2">{fH.filter(f=>f.resultado==="irregular").length}</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Sessoes</p><p className="text-4xl font-extrabold text-slate-800 mt-3">{sH.length}</p><p className="text-xs text-slate-400 mt-1">ativadas hoje</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Receita</p><p className="text-4xl font-extrabold text-emerald-600 mt-3">R$ {rec.toFixed(2)}</p><p className="text-xs text-slate-400 mt-1">arrecadado hoje</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Fiscalizacoes</p><p className="text-4xl font-extrabold text-blue-600 mt-3">{contagem.total}</p><p className="text-xs text-slate-400 mt-1">{contagem.regularizados} regularizados</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Irregulares</p><p className="text-4xl font-extrabold text-red-500 mt-3">{contagem.irregulares}</p><p className="text-xs text-slate-400 mt-1">pendentes agora</p></div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden"><div className="px-6 py-4 border-b border-slate-100"><p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Sessoes do dia</p></div>{sH.length===0?<p className="p-6 text-slate-400 text-sm text-center">Nenhuma sessao hoje</p>:<div className="divide-y divide-slate-50">{sH.slice(0,8).map(s=><div key={s.id} className="flex items-center justify-between px-6 py-3"><div><p className="font-mono font-bold text-sm text-slate-800">{s.placa}</p><p className="text-[11px] text-slate-400">{s.zona_nome}</p></div><span className="text-sm font-bold text-slate-700">R${parseFloat(s.valor_total).toFixed(2)}</span></div>)}</div>}</div>
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden"><div className="px-6 py-4 border-b border-slate-100"><p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Fiscalizacoes do dia</p></div>{fH.length===0?<p className="p-6 text-slate-400 text-sm text-center">Nenhuma fiscalizacao hoje</p>:<div className="divide-y divide-slate-50">{fH.slice(0,8).map(f=><div key={f.id} className="flex items-center justify-between px-6 py-3"><div><p className="font-mono font-bold text-sm text-slate-800">{f.placa}</p><p className="text-[11px] text-slate-400">{f.fiscal_nome}</p></div><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${f.resultado==="irregular"?"bg-red-100 text-red-700":"bg-emerald-100 text-emerald-700"}`}>{f.resultado}</span></div>)}</div>}</div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Sessoes do dia</p></div>{sH.length===0?<p className="p-6 text-slate-400 text-sm text-center">Nenhuma sessao hoje</p>:<div className="divide-y divide-slate-50">{sH.slice(0,8).map(s=><div key={s.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{s.placa}</p><p className="text-[11px] text-slate-400">{s.zona_nome}</p></div><span className="text-sm font-extrabold text-slate-700">R${parseFloat(s.valor_total).toFixed(2)}</span></div>)}</div>}</div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Fiscalizacoes do dia</p></div>{fisc.length===0?<p className="p-6 text-slate-400 text-sm text-center">Nenhuma fiscalizacao hoje</p>:<div className="divide-y divide-slate-50">{fisc.filter(f=>f.criado_em?.startsWith(hoje)).slice(0,8).map(f=><div key={f.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{f.placa}</p><p className="text-[11px] text-slate-400">{f.fiscal_nome}</p></div><span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${f.status_atual==="regularizado"?"bg-emerald-50 text-emerald-600 border border-emerald-200":f.aguardando_prazo?"bg-amber-50 text-amber-600 border border-amber-200":"bg-red-50 text-red-600 border border-red-200"}`}>{f.status_atual==="regularizado"?"Regularizado":f.aguardando_prazo?"Aguardando":"Irregular"}</span></div>)}</div>}</div>
       </div>
     </div>
   )
 }
 
 function PgMovimentacao(){
-  const [sessoes,setSessoes]=useState([]),[fisc,setFisc]=useState([]),[uCount,setUCount]=useState(0)
-  useEffect(()=>{api.get("/sessoes").then(r=>setSessoes(r.data||[])).catch(()=>{});api.get("/fiscalizacoes").then(r=>setFisc(r.data||[])).catch(()=>{});api.get("/usuarios").then(r=>setUCount(Array.isArray(r.data)?r.data.length:0)).catch(()=>{})},[])
+  const [sessoes,setSessoes]=useState([]),[fisc,setFisc]=useState([]),[uCount,setUCount]=useState(0),[fContagem,setFContagem]=useState({total:0,irregulares:0,regularizados:0})
+  useEffect(()=>{
+    api.get("/sessoes").then(r=>setSessoes(r.data||[])).catch(()=>{})
+    api.get("/fiscalizacoes").then(r=>setFisc(r.data||[])).catch(()=>{})
+    api.get("/usuarios/contagem").then(r=>setUCount(r.data.total||0)).catch(()=>{})
+    api.get("/fiscalizacoes/contagem").then(r=>setFContagem(r.data)).catch(()=>{})
+  },[])
   const hoje=new Date().toISOString().slice(0,10),sH=sessoes.filter(s=>s.criado_em?.startsWith(hoje)),rec=sH.reduce((a,s)=>a+parseFloat(s.valor_total||0),0),recT=sessoes.reduce((a,s)=>a+parseFloat(s.valor_total||0),0)
   return(
     <div className="space-y-6">
       <h2 className="text-2xl font-extrabold text-slate-800">Movimentacao</h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Usuarios</p><p className="text-3xl font-extrabold text-blue-600 mt-2">{uCount}</p></div>
-        <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Sessoes hoje</p><p className="text-3xl font-extrabold text-emerald-600 mt-2">{sH.length}</p></div>
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-xl text-white"><p className="text-blue-200 text-xs uppercase tracking-wider font-medium">Receita hoje</p><p className="text-3xl font-extrabold mt-2">R$ {rec.toFixed(2)}</p></div>
-        <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Receita total</p><p className="text-3xl font-extrabold text-slate-800 mt-2">R$ {recT.toFixed(2)}</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Usuarios</p><p className="text-4xl font-extrabold text-blue-600 mt-3">{uCount}</p><p className="text-xs text-slate-400 mt-1">cadastrados</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Sessoes hoje</p><p className="text-4xl font-extrabold text-emerald-600 mt-3">{sH.length}</p><p className="text-xs text-slate-400 mt-1">ativadas</p></div>
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl text-white shadow-lg"><p className="text-blue-200 text-[11px] uppercase tracking-widest font-semibold">Receita hoje</p><p className="text-4xl font-extrabold mt-3">R$ {rec.toFixed(2)}</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Receita total</p><p className="text-4xl font-extrabold text-slate-800 mt-3">R$ {recT.toFixed(2)}</p></div>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Fiscalizacoes</p><p className="text-3xl font-extrabold text-blue-600 mt-2">{fContagem.total}</p></div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Irregulares</p><p className="text-3xl font-extrabold text-red-500 mt-2">{fContagem.irregulares}</p></div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Regularizados</p><p className="text-3xl font-extrabold text-emerald-600 mt-2">{fContagem.regularizados}</p></div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden"><div className="px-6 py-4 border-b border-slate-100"><p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Sessoes recentes</p></div><div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">{sessoes.slice(0,12).map(s=><div key={s.id} className="flex items-center justify-between px-6 py-3"><div><p className="font-mono font-bold text-sm text-slate-800">{s.placa}</p><p className="text-[11px] text-slate-400">{s.zona_nome} · {new Date(s.criado_em).toLocaleString("pt-BR")}</p></div><div className="text-right"><span className={`text-xs px-2 py-0.5 rounded-full ${s.status==="ativa"?"bg-emerald-100 text-emerald-700":"bg-slate-100 text-slate-500"}`}>{s.status}</span><p className="text-sm font-bold text-slate-700 mt-0.5">R${parseFloat(s.valor_total).toFixed(2)}</p></div></div>)}</div></div>
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden"><div className="px-6 py-4 border-b border-slate-100"><p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Fiscalizacoes</p></div><div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">{fisc.slice(0,12).map(f=><div key={f.id} className="flex items-center justify-between px-6 py-3"><div><p className="font-mono font-bold text-sm text-slate-800">{f.placa}</p><p className="text-[11px] text-slate-400">{f.fiscal_nome} · {new Date(f.criado_em).toLocaleString("pt-BR")}</p></div><span className={`text-xs px-2 py-0.5 rounded-full ${f.resultado==="irregular"?"bg-red-100 text-red-700":"bg-emerald-100 text-emerald-700"}`}>{f.resultado}</span></div>)}</div></div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Sessoes recentes</p></div><div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">{sessoes.slice(0,12).map(s=><div key={s.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{s.placa}</p><p className="text-[11px] text-slate-400">{s.zona_nome}</p></div><div className="text-right"><span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${s.status==="ativa"?"bg-emerald-50 text-emerald-600 border border-emerald-200":"bg-slate-100 text-slate-500"}`}>{s.status}</span><p className="text-sm font-extrabold text-slate-700 mt-1">R${parseFloat(s.valor_total).toFixed(2)}</p></div></div>)}</div></div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Fiscalizacoes</p></div><div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">{fisc.slice(0,12).map(f=><div key={f.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{f.placa}</p><p className="text-[11px] text-slate-400">{f.fiscal_nome}</p></div><span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${f.status_atual==="regularizado"?"bg-emerald-50 text-emerald-600 border border-emerald-200":f.aguardando_prazo?"bg-amber-50 text-amber-600 border border-amber-200":"bg-red-50 text-red-600 border border-red-200"}`}>{f.status_atual==="regularizado"?"Regularizado":f.aguardando_prazo?"Aguardando":"Irregular"}</span></div>)}</div></div>
       </div>
     </div>
   )
@@ -625,18 +639,56 @@ function PgMovimentacao(){
 
 function PgGerZonas(){
   const [zonas,setZonas]=useState([]),[edit,setEdit]=useState(null),[nome,setNome]=useState(""),[desc,setDesc]=useState(""),[preco,setPreco]=useState(""),[msg,setMsg]=useState("")
+  const [desenhando,setDesenhando]=useState(false),[pontos,setPontos]=useState([])
+  const mapRef=useRef(null),mapInstRef=useRef(null),markersRef=useRef([]),polyRef=useRef(null)
   const carregar=()=>{api.get("/zonas").then(r=>setZonas(r.data||[])).catch(()=>{})}
   useEffect(()=>{carregar()},[])
-  const criar=async()=>{if(!nome||!preco){setMsg("Preencha nome e preco");return};try{await api.post("/zonas",{nome,descricao:desc,preco_hora:parseFloat(preco)});setNome("");setDesc("");setPreco("");setMsg("Zona criada");carregar()}catch(err){setMsg("Erro")}}
+
+  useEffect(()=>{
+    if(!desenhando)return
+    const loadMap=()=>{
+      if(!window.L){const s=document.createElement("script");s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";s.onload=()=>initMap(window.L);document.head.appendChild(s);if(!document.getElementById("leaflet-css")){const l=document.createElement("link");l.id="leaflet-css";l.rel="stylesheet";l.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(l)}}else{initMap(window.L)}
+    }
+    const initMap=(L)=>{
+      if(mapInstRef.current){mapInstRef.current.remove();mapInstRef.current=null}
+      if(!mapRef.current)return
+      const map=L.map(mapRef.current,{center:[-22.4307,-45.4510],zoom:15})
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"OpenStreetMap",maxZoom:19}).addTo(map)
+      mapInstRef.current=map
+      map.on("click",(e)=>{
+        const{lat,lng}=e.latlng
+        const newPontos=[...pontos,[lat,lng]]
+        setPontos(newPontos)
+        const marker=L.circleMarker([lat,lng],{radius:6,color:"#2563eb",fillColor:"#2563eb",fillOpacity:1}).addTo(map)
+        markersRef.current.push(marker)
+        if(polyRef.current)polyRef.current.remove()
+        if(newPontos.length>=3){
+          polyRef.current=L.polygon(newPontos,{color:"#2563eb",fillColor:"#2563eb",fillOpacity:0.2,weight:2}).addTo(map)
+        }
+      })
+    }
+    loadMap()
+    return()=>{if(mapInstRef.current){mapInstRef.current.remove();mapInstRef.current=null};markersRef.current=[];polyRef.current=null}
+  },[desenhando])
+
+  const criar=async()=>{if(!nome||!preco){setMsg("Preencha nome e preco");return};try{await api.post("/zonas",{nome,descricao:desc,preco_hora:parseFloat(preco)});setNome("");setDesc("");setPreco("");setPontos([]);setDesenhando(false);setMsg("Zona criada");carregar()}catch(err){setMsg("Erro")}}
   const salvar=async(z)=>{try{await api.put("/zonas/"+z.id,{nome:z.nome,descricao:z.descricao,preco_hora:z.preco_hora,ativo:z.ativo});setEdit(null);setMsg("Salvo");carregar()}catch(err){setMsg("Erro")}}
+  const limparPontos=()=>{setPontos([]);if(mapInstRef.current){markersRef.current.forEach(m=>m.remove());markersRef.current=[];if(polyRef.current){polyRef.current.remove();polyRef.current=null}}}
+
   return(
     <div className="space-y-6">
-      <h2 className="text-2xl font-extrabold text-slate-800">Zonas e Precos</h2>
+      <div className="flex items-center justify-between"><h2 className="text-2xl font-extrabold text-slate-800">Zonas e Precos</h2><button onClick={()=>setDesenhando(!desenhando)} className={`px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer transition ${desenhando?"bg-red-100 text-red-600":"bg-blue-600 text-white hover:bg-blue-700"}`}>{desenhando?"Fechar mapa":"+ Nova zona no mapa"}</button></div>
       {msg&&<p className="text-sm p-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200">{msg}</p>}
-      <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm">
-        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Nova zona</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4"><input placeholder="Nome da zona" className="border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" value={nome} onChange={e=>setNome(e.target.value)}/><input placeholder="Descricao" className="border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" value={desc} onChange={e=>setDesc(e.target.value)}/><div className="flex gap-2"><input placeholder="R$/hora" type="number" step="0.5" className="flex-1 border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" value={preco} onChange={e=>setPreco(e.target.value)}/><button onClick={criar} className="bg-blue-600 text-white px-6 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700 whitespace-nowrap">Criar</button></div></div>
-      </div>
+      {desenhando&&(<div className="bg-white p-6 rounded-xl border border-slate-200 space-y-4">
+        <p className="text-sm text-slate-500">Clique no mapa para marcar os pontos da zona. Minimo 3 pontos para formar a area.</p>
+        <div className="rounded-xl overflow-hidden border border-slate-200" style={{height:"350px"}}><div ref={mapRef} style={{width:"100%",height:"100%"}}/></div>
+        <div className="flex items-center gap-2"><span className="text-xs text-slate-400">{pontos.length} pontos marcados</span>{pontos.length>0&&<button onClick={limparPontos} className="text-xs text-red-500 cursor-pointer font-semibold">Limpar pontos</button>}</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><input placeholder="Nome da zona" className="border border-slate-200 p-3 rounded-lg text-sm" value={nome} onChange={e=>setNome(e.target.value)}/><input placeholder="Descricao" className="border border-slate-200 p-3 rounded-lg text-sm" value={desc} onChange={e=>setDesc(e.target.value)}/><div className="flex gap-2"><input placeholder="R$/hora" type="number" step="0.5" className="flex-1 border border-slate-200 p-3 rounded-lg text-sm" value={preco} onChange={e=>setPreco(e.target.value)}/><button onClick={criar} className="bg-blue-600 text-white px-6 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700 whitespace-nowrap">Criar</button></div></div>
+      </div>)}
+      {!desenhando&&(<div className="bg-white p-6 rounded-xl border border-slate-200">
+        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Adicionar rapido</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4"><input placeholder="Nome da zona" className="border border-slate-200 p-3 rounded-lg text-sm" value={nome} onChange={e=>setNome(e.target.value)}/><input placeholder="Descricao" className="border border-slate-200 p-3 rounded-lg text-sm" value={desc} onChange={e=>setDesc(e.target.value)}/><div className="flex gap-2"><input placeholder="R$/hora" type="number" step="0.5" className="flex-1 border border-slate-200 p-3 rounded-lg text-sm" value={preco} onChange={e=>setPreco(e.target.value)}/><button onClick={criar} className="bg-blue-600 text-white px-6 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700 whitespace-nowrap">Criar</button></div></div>
+      </div>)}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-50">{zonas.map(z=><div key={z.id} className="px-6 py-4">{edit===z.id?(<div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center"><input defaultValue={z.nome} className="border border-slate-200 p-2.5 rounded-lg text-sm" onChange={e=>{z.nome=e.target.value}}/><input defaultValue={z.descricao} className="border border-slate-200 p-2.5 rounded-lg text-sm" onChange={e=>{z.descricao=e.target.value}}/><input defaultValue={z.preco_hora} type="number" step="0.5" className="border border-slate-200 p-2.5 rounded-lg text-sm" onChange={e=>{z.preco_hora=e.target.value}}/><div className="flex gap-2"><button onClick={()=>salvar(z)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm cursor-pointer font-semibold">Salvar</button><button onClick={()=>setEdit(null)} className="text-slate-400 cursor-pointer text-sm">Cancelar</button></div></div>):(<div className="flex items-center justify-between"><div><p className="font-semibold text-slate-800 text-lg">{z.nome}</p><p className="text-sm text-slate-400">{z.descricao}</p></div><div className="flex items-center gap-4"><span className="text-lg font-extrabold text-blue-600">R$ {parseFloat(z.preco_hora).toFixed(2)}<span className="text-sm font-normal text-slate-400">/h</span></span><button onClick={()=>setEdit(z.id)} className="text-blue-600 cursor-pointer text-sm font-semibold hover:text-blue-800">Editar</button></div></div>)}</div>)}</div>
     </div>
   )
