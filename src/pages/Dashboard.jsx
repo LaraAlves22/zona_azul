@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "../services/api"
 
@@ -176,6 +176,283 @@ function PgVeiculos({usuario}){
   )
 }
 
+// ---------------------------------------------------------------------------
+// Polígonos reais das zonas de Zona Azul em Itajubá-MG
+// Coordenadas no formato Leaflet [lat, lng] (GeoJSON usa [lng, lat] — já invertido)
+// ---------------------------------------------------------------------------
+
+// Comercial: retângulo simples
+const _COMERCIAL_ANEL = [
+  [-22.424198030624154, -45.460054705522055],
+  [-22.426128428143585, -45.460054705522055],
+  [-22.426128428143585, -45.453671842346495],
+  [-22.424198030624154, -45.453671842346495],
+  [-22.424198030624154, -45.460054705522055],
+]
+
+// Centro: dois polígonos distintos
+const _CENTRO_ANEL_1 = [
+  [-22.424198030624154, -45.460054705522055],
+  [-22.426128428143585, -45.460054705522055],
+  [-22.426128428143585, -45.453671842346495],
+  [-22.424198030624154, -45.453671842346495],
+  [-22.424198030624154, -45.460054705522055],
+]
+const _CENTRO_ANEL_2 = [
+  [-22.42418232459613,  -45.46006216140711 ],
+  [-22.42418232459613,  -45.453670664141754],
+  [-22.4241643021886,   -45.45021079239726 ],
+  [-22.42186301166271,  -45.45045349218151 ],
+  [-22.42065723322544,  -45.460172599657994],
+  [-22.42418232459613,  -45.46006216140711 ],
+]
+
+// Residencial: polígono externo grande com Centro e Comercial furados
+const _RESIDENCIAL_EXTERNO = [
+  [-22.41127289675218,  -45.46814557542862 ],
+  [-22.43105980071286,  -45.47166755097146 ],
+  [-22.435530319799113, -45.440319519899646],
+  [-22.414870315641096, -45.43458169683376 ],
+  [-22.41127289675218,  -45.46814557542862 ],
+]
+
+const ZONAS_POLIGONOS = {
+  "Comercial": {
+    aneis: [ _COMERCIAL_ANEL ],
+    holes: [],
+  },
+  "Centro": {
+    aneis: [ _CENTRO_ANEL_1, _CENTRO_ANEL_2 ],
+    holes: [],
+  },
+  "Residencial": {
+    aneis: [ _RESIDENCIAL_EXTERNO ],
+    holes: [ _CENTRO_ANEL_1, _CENTRO_ANEL_2, _COMERCIAL_ANEL ],
+  },
+  "Sao Jose": {
+    aneis: [[
+      [-22.4305, -45.4480],
+      [-22.4305, -45.4430],
+      [-22.4345, -45.4430],
+      [-22.4345, -45.4480],
+      [-22.4305, -45.4480],
+    ]],
+    holes: [],
+  },
+  "Medicina": {
+    aneis: [[
+      [-22.4340, -45.4560],
+      [-22.4340, -45.4510],
+      [-22.4375, -45.4510],
+      [-22.4375, -45.4560],
+      [-22.4340, -45.4560],
+    ]],
+    holes: [],
+  },
+}
+// Ray-casting para um único anel [lat,lng]
+function _pontoNoAnel(lat, lng, anel) {
+  let dentro = false
+  for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    const [yi, xi] = anel[i], [yj, xj] = anel[j]
+    if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi))
+      dentro = !dentro
+  }
+  return dentro
+}
+
+// Retorna true se ponto está em algum anel externo E não está em nenhum buraco
+function pontoNaZona(lat, lng, { aneis, holes }) {
+  const noExterior = aneis.some(a => _pontoNoAnel(lat, lng, a))
+  if (!noExterior) return false
+  const noBuraco  = holes.some(h => _pontoNoAnel(lat, lng, h))
+  return !noBuraco
+}
+
+// Dado lat/lng, retorna a chave da zona correspondente (ou null)
+// Ordem importa: mais específicas primeiro (Comercial/Centro antes de Residencial)
+function detectarZona(lat, lng) {
+  const ORDEM = ["Comercial", "Centro", "Sao Jose", "Medicina", "Residencial"]
+  for (const nome of ORDEM) {
+    if (ZONAS_POLIGONOS[nome] && pontoNaZona(lat, lng, ZONAS_POLIGONOS[nome])) return nome
+  }
+  return null
+}
+
+// Centro geográfico do primeiro anel externo de cada zona
+function centroidePoligono({ aneis }) {
+  const poly = aneis[0]
+  const lat = poly.reduce((s, p) => s + p[0], 0) / poly.length
+  const lng = poly.reduce((s, p) => s + p[1], 0) / poly.length
+  return { lat, lng }
+}
+
+function MapaZonas({ zonas, zSel, onSelect, matchZona }) {
+  const mapRef        = useRef(null)
+  const mapInstRef    = useRef(null)
+  const layersRef     = useRef([])   // polígonos + labels
+  const pinRef        = useRef(null) // marcador de clique livre
+  const onSelectRef   = useRef(onSelect)
+  const zonasRef      = useRef(zonas)
+  useEffect(() => { onSelectRef.current = onSelect }, [onSelect])
+  useEffect(() => { zonasRef.current = zonas }, [zonas])
+
+  // CSS do Leaflet (uma vez)
+  useEffect(() => {
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link')
+      link.id = 'leaflet-css'
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      document.head.appendChild(link)
+    }
+  }, [])
+
+  const initMap = useCallback((L) => {
+    if (mapInstRef.current || !mapRef.current) return
+    const map = L.map(mapRef.current, {
+      center: [-22.4307, -45.4510],
+      zoom: 15,
+      zoomControl: true,
+    })
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map)
+    mapInstRef.current = map
+
+    // Centraliza no usuário se possível
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => map.setView([coords.latitude, coords.longitude], 16),
+        () => {}
+      )
+    }
+
+    // Clique em qualquer ponto do mapa → detecta zona pelo polígono
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng
+      const nomeZona = detectarZona(lat, lng)
+      const zonaEncontrada = zonasRef.current.find(z =>
+        nomeZona && z.nome.toLowerCase().includes(nomeZona.toLowerCase().split(" ")[0])
+      )
+
+      // Remove pin anterior
+      if (pinRef.current) { pinRef.current.remove(); pinRef.current = null }
+
+      if (zonaEncontrada) {
+        // Clicou dentro de uma zona → seleciona ela
+        onSelectRef.current(zonaEncontrada)
+      } else {
+        // Clicou fora de qualquer zona → coloca pin "fora da área"
+        const meta = matchZona  // não usado aqui, só para clareza
+        const pinIcon = L.divIcon({
+          className: '',
+          html: `<div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="width:28px;height:28px;background:#64748b;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+              <span style="color:white;font-size:12px;">?</span>
+            </div>
+            <span style="margin-top:3px;background:rgba(30,41,59,0.85);color:white;font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;white-space:nowrap;">Fora da area</span>
+          </div>`,
+          iconSize: [80, 46],
+          iconAnchor: [40, 18],
+        })
+        pinRef.current = L.marker([lat, lng], { icon: pinIcon }).addTo(map)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    const load = () => {
+      if (window.L) { initMap(window.L); return }
+      const s = document.createElement('script')
+      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+      s.onload = () => initMap(window.L)
+      document.head.appendChild(s)
+    }
+    load()
+    return () => {
+      if (mapInstRef.current) { mapInstRef.current.remove(); mapInstRef.current = null }
+    }
+  }, [])
+
+  // Redesenha polígonos + labels quando zonas ou seleção mudam
+  useEffect(() => {
+    const L = window.L
+    const map = mapInstRef.current
+    if (!L || !map || zonas.length === 0) return
+
+    layersRef.current.forEach(l => l.remove())
+    layersRef.current = []
+
+    zonas.forEach(z => {
+      const meta = matchZona(z.nome)
+      const cor = meta?.cor || '#2563eb'
+      const sel = zSel?.id === z.id
+
+      // Encontra o polígono pelo nome
+      const polyKey = Object.keys(ZONAS_POLIGONOS).find(k =>
+        z.nome.toLowerCase().includes(k.toLowerCase().split(" ")[0])
+      )
+      if (!polyKey) return
+      const zonaDef = ZONAS_POLIGONOS[polyKey]
+      const centro  = centroidePoligono(zonaDef)
+
+      // Desenha cada anel externo com seus buracos (suporte a hole-punch nativo do Leaflet)
+      // L.polygon aceita [ anel_externo, buraco1, buraco2, ... ] por grupo.
+      // Para multi-polígono (vários anéis externos), criamos um layer por anel.
+      zonaDef.aneis.forEach((anel, idx) => {
+        // O primeiro anel externo carrega os buracos; os demais são ilhas sem buraco
+        const leafletCoords = idx === 0
+          ? [anel, ...zonaDef.holes]
+          : [anel]
+        const poly = L.polygon(leafletCoords, {
+          color: cor,
+          fillColor: cor,
+          fillOpacity: sel ? 0.35 : 0.15,
+          weight: sel ? 3 : 1.5,
+          dashArray: sel ? null : '5 4',
+        }).addTo(map)
+        poly.on('click', () => onSelect(z))
+        layersRef.current.push(poly)
+      })
+
+      // Label no centróide
+      const labelIcon = L.divIcon({
+        className: '',
+        html: `<div style="display:flex;flex-direction:column;align-items:center;pointer-events:none;">
+          <div style="
+            width:${sel?'42px':'32px'};height:${sel?'42px':'32px'};
+            background:${cor};border:${sel?'3px':'2px'} solid white;
+            border-radius:50%;display:flex;align-items:center;justify-content:center;
+            box-shadow:${sel?`0 0 0 3px ${cor},`:''}0 2px 8px rgba(0,0,0,0.25);
+            transition:all 0.2s;
+          ">
+            <span style="color:white;font-size:${sel?'13px':'10px'};font-weight:900;">P</span>
+          </div>
+          <span style="
+            margin-top:3px;
+            background:${sel?'#1e293b':'rgba(255,255,255,0.95)'};
+            color:${sel?'white':'#334155'};
+            font-size:10px;font-weight:700;
+            padding:2px 7px;border-radius:6px;
+            box-shadow:0 1px 4px rgba(0,0,0,0.15);
+            white-space:nowrap;
+          ">${z.nome}</span>
+        </div>`,
+        iconSize: [80, 52],
+        iconAnchor: [40, 20],
+      })
+      const label = L.marker([centro.lat, centro.lng], { icon: labelIcon, interactive: true })
+        .addTo(map)
+        .on('click', () => onSelect(z))
+      layersRef.current.push(label)
+    })
+  }, [zonas, zSel])
+
+  return <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+}
+
 function PgEstacionar({usuario,saldo,setSaldo}){
   const [zonas,setZonas]=useState([]),[veiculos,setVeiculos]=useState([]),[zSel,setZSel]=useState(null),[veic,setVeic]=useState(""),[dur,setDur]=useState(60),[msg,setMsg]=useState("")
   useEffect(()=>{api.get("/zonas").then(r=>setZonas(r.data||[])).catch(()=>{});api.get("/veiculos").then(r=>setVeiculos((r.data||[]).filter(v=>v.usuario_id===usuario.id))).catch(()=>{})},[])
@@ -183,22 +460,15 @@ function PgEstacionar({usuario,saldo,setSaldo}){
   const matchZona=(nome)=>ZONAS_MAPA.find(z=>nome.toLowerCase().includes(z.nome.toLowerCase().split(" ")[0]))
   return(
     <div className="space-y-6 h-full">
-      <div><h2 className="text-2xl font-extrabold text-slate-800">Estacionar</h2><p className="text-slate-500">Selecione a zona no mapa ou na lista abaixo</p></div>
+      <div><h2 className="text-2xl font-extrabold text-slate-800">Estacionar</h2><p className="text-slate-500">Clique em qualquer ponto do mapa — a zona sera detectada automaticamente</p></div>
       {msg&&<p className={`text-sm p-3 rounded-lg ${msg.includes("Erro")||msg.includes("Saldo")||msg.includes("Selecione")?"bg-red-50 text-red-600 border border-red-200":"bg-emerald-50 text-emerald-600 border border-emerald-200"}`}>{msg}</p>}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-full">
         <div className="xl:col-span-2 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden h-[520px] lg:h-[580px] xl:h-[620px]">
-            <div className="relative h-72 lg:h-96" style={{background:"linear-gradient(145deg,#e8edf5,#dce4f0,#e2e8f0)"}}>
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 100"><path d="M40 25 L80 25 L130 30 L160 35" stroke="#cbd5e1" fill="none" strokeWidth="1" strokeDasharray="3 2"/><path d="M30 50 L70 48 L110 52 L150 50 L180 55" stroke="#cbd5e1" fill="none" strokeWidth="1.2"/><path d="M50 70 L90 68 L120 72 L160 70" stroke="#cbd5e1" fill="none" strokeWidth="0.8"/></svg>
-              {zonas.map(z=>{const m=matchZona(z.nome);if(!m)return null;return(
-                <button key={z.id} onClick={()=>setZSel(z)} className="absolute cursor-pointer group" style={{top:`${m.y}%`,left:`${m.x}%`,transform:"translate(-50%,-50%)"}}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all ${zSel?.id===z.id?"scale-125 ring-4 ring-white":"group-hover:scale-110"}`} style={{background:m.cor}}><span className="text-white text-[9px] font-black">P</span></div>
-                  <span className={`absolute top-full mt-1 left-1/2 -translate-x-1/2 text-[10px] font-bold whitespace-nowrap px-2 py-0.5 rounded-md transition ${zSel?.id===z.id?"bg-slate-800 text-white":"bg-white/90 text-slate-600 shadow-sm group-hover:bg-slate-800 group-hover:text-white"}`}>{z.nome}</span>
-                </button>
-              )})}
-              <span className="absolute bottom-3 right-3 text-[10px] text-slate-400 bg-white/80 px-2 py-1 rounded-md font-medium">Itajuba - MG</span>
-            </div>
+          {/* Mapa Leaflet real */}
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{height:'420px'}}>
+            <MapaZonas zonas={zonas} zSel={zSel} onSelect={setZSel} matchZona={matchZona}/>
           </div>
+          {/* Lista de zonas clicáveis */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {zonas.map(z=>{const m=matchZona(z.nome);return(
               <button key={z.id} onClick={()=>setZSel(z)} className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer text-left transition-all ${zSel?.id===z.id?"border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10":"border-slate-200 bg-white hover:border-blue-300 hover:shadow-md"}`}>

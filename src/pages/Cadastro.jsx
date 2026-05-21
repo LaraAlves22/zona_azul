@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import api from "../services/api"
 export default function Cadastro() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ nome:'', email:'', telefone:'', senha:'', senha2:'', perfil:'' })
+  const [form, setForm] = useState({ nome:'', email:'', telefone:'', senha:'', senha2:'', perfil:'motorista' })
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState(false)
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
@@ -12,9 +12,8 @@ export default function Cadastro() {
     setErro('')
     if (form.senha !== form.senha2) return setErro('As senhas nao coincidem')
     if (form.senha.length < 8) return setErro('A senha precisa ter no minimo 8 caracteres')
-    if (!form.perfil) return setErro('Selecione um perfil')
     try {
-      await api.post('/auth/registrar', { nome: form.nome, email: form.email, telefone: form.telefone, senha: form.senha, perfil: form.perfil })
+      await api.post('/auth/registrar', { nome: form.nome, email: form.email, telefone: form.telefone, senha: form.senha, perfil: 'motorista' })
       setSucesso(true)
     } catch (err) { setErro(err.response?.data?.erro || 'Erro ao cadastrar') }
   }
@@ -38,7 +37,6 @@ export default function Cadastro() {
         <div><label className="block text-xs font-medium text-slate-500 mb-1">Telefone</label><input type="tel" name="telefone" placeholder="+5535999999999" className="w-full border p-2 rounded" value={form.telefone} onChange={handleChange} required /></div>
         <div><label className="block text-xs font-medium text-slate-500 mb-1">Senha</label><input type="password" name="senha" placeholder="Minimo 8 caracteres" className="w-full border p-2 rounded" value={form.senha} onChange={handleChange} required /></div>
         <div><label className="block text-xs font-medium text-slate-500 mb-1">Confirme sua Senha</label><input type="password" name="senha2" placeholder="Repita a senha" className="w-full border p-2 rounded" value={form.senha2} onChange={handleChange} required /></div>
-        <div><label className="block text-xs font-medium text-slate-500 mb-1">Perfil</label><select name="perfil" className="w-full border p-2 rounded text-slate-700" value={form.perfil} onChange={handleChange} required><option value="">Selecione um perfil</option><option value="motorista">Motorista</option><option value="fiscal">Fiscal</option></select></div>
         <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg cursor-pointer hover:bg-blue-700">Criar conta</button>
       </form>
       <div className="flex justify-center items-center gap-1 mt-4"><span className="text-sm text-slate-500">Ja tem conta?</span><button onClick={() => navigate('/login')} className="text-sm text-blue-600 cursor-pointer">Entrar</button></div>
@@ -46,5 +44,3 @@ export default function Cadastro() {
     </div>
   )
 }
-
-
