@@ -8,7 +8,7 @@ const ZONAS_MAPA = [{nome:"Centro",cor:"#dc2626",x:50,y:35,desc:"Praca Theodomir
 
 function Ic({d,c="w-5 h-5"}){return <svg className={c} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={d}/></svg>}
 
-function Sidebar({page,setPage,perfil,usuario,onLogout,mob,setMob}){
+function Sidebar({page,setPage,perfil,usuario,onLogout,mob,setMob,onConfig}){
   const [nc,setNc]=useState(0)
   useEffect(()=>{if(perfil==="motorista"&&usuario?.id)api.get("/notificacoes/nao-lidas/"+usuario.id).then(r=>setNc(r.data.count||0)).catch(()=>{})},[page])
   const menus={
@@ -287,166 +287,97 @@ function centroidePoligono({ aneis }) {
   return { lat, lng }
 }
 
-function MapaZonas({ zonas, zSel, onSelect, matchZona }) {
-  const mapRef        = useRef(null)
-  const mapInstRef    = useRef(null)
-  const layersRef     = useRef([])   // polígonos + labels
-  const pinRef        = useRef(null) // marcador de clique livre
-  const onSelectRef   = useRef(onSelect)
-  const zonasRef      = useRef(zonas)
-  useEffect(() => { onSelectRef.current = onSelect }, [onSelect])
-  useEffect(() => { zonasRef.current = zonas }, [zonas])
+function MapaZonas({ zonas, zSel, onSelect }) {
+  const mapRef = useRef(null)
+  const mapInstRef = useRef(null)
+  const layersRef = useRef([])
 
-  // CSS do Leaflet (uma vez)
-  useEffect(() => {
-    if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link')
-      link.id = 'leaflet-css'
-      link.rel = 'stylesheet'
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-      document.head.appendChild(link)
-    }
-  }, [])
-
-  const initMap = useCallback((L) => {
-    if (mapInstRef.current || !mapRef.current) return
-    const map = L.map(mapRef.current, {
-      center: [-22.4307, -45.4510],
-      zoom: 15,
-      zoomControl: true,
-    })
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(map)
-    mapInstRef.current = map
-
-    // Centraliza no usuário se possível
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        ({ coords }) => map.setView([coords.latitude, coords.longitude], 16),
-        () => {}
-      )
-    }
-
-    // Clique em qualquer ponto do mapa → detecta zona pelo polígono
-    map.on('click', (e) => {
-      const { lat, lng } = e.latlng
-      const nomeZona = detectarZona(lat, lng)
-      const zonaEncontrada = zonasRef.current.find(z =>
-        nomeZona && z.nome.toLowerCase().includes(nomeZona.toLowerCase().split(" ")[0])
-      )
-
-      // Remove pin anterior
-      if (pinRef.current) { pinRef.current.remove(); pinRef.current = null }
-
-      if (zonaEncontrada) {
-        // Clicou dentro de uma zona → seleciona ela
-        onSelectRef.current(zonaEncontrada)
-      } else {
-        // Clicou fora de qualquer zona → coloca pin "fora da área"
-        const meta = matchZona  // não usado aqui, só para clareza
-        const pinIcon = L.divIcon({
-          className: '',
-          html: `<div style="display:flex;flex-direction:column;align-items:center;">
-            <div style="width:28px;height:28px;background:#64748b;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
-              <span style="color:white;font-size:12px;">?</span>
-            </div>
-            <span style="margin-top:3px;background:rgba(30,41,59,0.85);color:white;font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;white-space:nowrap;">Fora da area</span>
-          </div>`,
-          iconSize: [80, 46],
-          iconAnchor: [40, 18],
-        })
-        pinRef.current = L.marker([lat, lng], { icon: pinIcon }).addTo(map)
-      }
-    })
-  }, [])
+  const CORES = ['#dc2626','#f59e0b','#059669','#2563eb','#7c3aed','#db2777','#ea580c','#0d9488']
+  const COORDS_PADRAO = [
+    [-22.4255,-45.4565],[-22.4251,-45.4530],[-22.4220,-45.4480],
+    [-22.4320,-45.4455],[-22.4358,-45.4535],[-22.4280,-45.4600],
+    [-22.4300,-45.4480],[-22.4240,-45.4550]
+  ]
 
   useEffect(() => {
+    if (!document.getElementById('leaflet-css-mz')) {
+      const l = document.createElement('link')
+      l.id = 'leaflet-css-mz'
+      l.rel = 'stylesheet'
+      l.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      document.head.appendChild(l)
+    }
     const load = () => {
-      if (window.L) { initMap(window.L); return }
+      if (window.L) return initMap(window.L)
       const s = document.createElement('script')
       s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
       s.onload = () => initMap(window.L)
       document.head.appendChild(s)
     }
-    load()
-    return () => {
+    const initMap = (L) => {
       if (mapInstRef.current) { mapInstRef.current.remove(); mapInstRef.current = null }
+      if (!mapRef.current) return
+      const map = L.map(mapRef.current, { center: [-22.4270, -45.4530], zoom: 15 })
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'OpenStreetMap', maxZoom: 19
+      }).addTo(map)
+      mapInstRef.current = map
     }
+    load()
+    return () => { if (mapInstRef.current) { mapInstRef.current.remove(); mapInstRef.current = null } }
   }, [])
 
-  // Redesenha polígonos + labels quando zonas ou seleção mudam
   useEffect(() => {
     const L = window.L
     const map = mapInstRef.current
     if (!L || !map || zonas.length === 0) return
 
-    layersRef.current.forEach(l => l.remove())
+    layersRef.current.forEach(l => { try { l.remove() } catch(e) {} })
     layersRef.current = []
 
-    zonas.forEach(z => {
-      const meta = matchZona(z.nome)
-      const cor = meta?.cor || '#2563eb'
-      const sel = zSel?.id === z.id
+    zonas.forEach((z, idx) => {
+      try {
+        const cor = CORES[idx % CORES.length]
+        const sel = zSel?.id === z.id
+        let lat = z.lat ? parseFloat(z.lat) : null
+        let lng = z.lng ? parseFloat(z.lng) : null
 
-      // Encontra o polígono pelo nome
-      const polyKey = Object.keys(ZONAS_POLIGONOS).find(k =>
-        z.nome.toLowerCase().includes(k.toLowerCase().split(" ")[0])
-      )
-      if (!polyKey) return
-      const zonaDef = ZONAS_POLIGONOS[polyKey]
-      const centro  = centroidePoligono(zonaDef)
+        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+          const fallback = COORDS_PADRAO[idx % COORDS_PADRAO.length]
+          lat = fallback[0]
+          lng = fallback[1]
+        }
 
-      // Desenha cada anel externo com seus buracos (suporte a hole-punch nativo do Leaflet)
-      // L.polygon aceita [ anel_externo, buraco1, buraco2, ... ] por grupo.
-      // Para multi-polígono (vários anéis externos), criamos um layer por anel.
-      zonaDef.aneis.forEach((anel, idx) => {
-        // O primeiro anel externo carrega os buracos; os demais são ilhas sem buraco
-        const leafletCoords = idx === 0
-          ? [anel, ...zonaDef.holes]
-          : [anel]
-        const poly = L.polygon(leafletCoords, {
+        const raio = parseInt(z.raio) || 200
+
+        const circle = L.circle([lat, lng], {
+          radius: raio,
           color: cor,
           fillColor: cor,
-          fillOpacity: sel ? 0.35 : 0.15,
+          fillOpacity: sel ? 0.35 : 0.12,
           weight: sel ? 3 : 1.5,
-          dashArray: sel ? null : '5 4',
         }).addTo(map)
-        poly.on('click', () => onSelect(z))
-        layersRef.current.push(poly)
-      })
+        circle.on('click', () => onSelect(z))
+        layersRef.current.push(circle)
 
-      // Label no centróide
-      const labelIcon = L.divIcon({
-        className: '',
-        html: `<div style="display:flex;flex-direction:column;align-items:center;pointer-events:none;">
-          <div style="
-            width:${sel?'42px':'32px'};height:${sel?'42px':'32px'};
-            background:${cor};border:${sel?'3px':'2px'} solid white;
-            border-radius:50%;display:flex;align-items:center;justify-content:center;
-            box-shadow:${sel?`0 0 0 3px ${cor},`:''}0 2px 8px rgba(0,0,0,0.25);
-            transition:all 0.2s;
-          ">
-            <span style="color:white;font-size:${sel?'13px':'10px'};font-weight:900;">P</span>
-          </div>
-          <span style="
-            margin-top:3px;
-            background:${sel?'#1e293b':'rgba(255,255,255,0.95)'};
-            color:${sel?'white':'#334155'};
-            font-size:10px;font-weight:700;
-            padding:2px 7px;border-radius:6px;
-            box-shadow:0 1px 4px rgba(0,0,0,0.15);
-            white-space:nowrap;
-          ">${z.nome}</span>
-        </div>`,
-        iconSize: [80, 52],
-        iconAnchor: [40, 20],
-      })
-      const label = L.marker([centro.lat, centro.lng], { icon: labelIcon, interactive: true })
-        .addTo(map)
-        .on('click', () => onSelect(z))
-      layersRef.current.push(label)
+        const icon = L.divIcon({
+          className: '',
+          html: '<div style="text-align:center;pointer-events:none;">' +
+            '<div style="width:' + (sel ? '36px' : '26px') + ';height:' + (sel ? '36px' : '26px') +
+            ';background:' + cor + ';border:2px solid white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;' +
+            'box-shadow:' + (sel ? '0 0 0 3px ' + cor + ',' : '') + '0 2px 6px rgba(0,0,0,0.25);transition:all 0.2s;">' +
+            '<span style="color:white;font-size:' + (sel ? '11px' : '8px') + ';font-weight:900;">P</span></div>' +
+            '<div style="margin-top:2px;background:' + (sel ? '#1e293b' : 'rgba(255,255,255,0.95)') +
+            ';color:' + (sel ? 'white' : '#334155') + ';font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;' +
+            'box-shadow:0 1px 3px rgba(0,0,0,0.15);white-space:nowrap;display:inline-block;">' + z.nome + '</div></div>',
+          iconSize: [80, 46],
+          iconAnchor: [40, 16],
+        })
+        const marker = L.marker([lat, lng], { icon: icon, interactive: true }).addTo(map).on('click', () => onSelect(z))
+        layersRef.current.push(marker)
+      } catch (e) {
+        console.warn('Zona ignorada:', z.nome, e.message)
+      }
     })
   }, [zonas, zSel])
 
@@ -466,7 +397,7 @@ function PgEstacionar({usuario,saldo,setSaldo}){
         <div className="xl:col-span-2 space-y-4">
           {/* Mapa Leaflet real */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{height:'420px'}}>
-            <MapaZonas zonas={zonas} zSel={zSel} onSelect={setZSel} matchZona={matchZona}/>
+            <MapaZonas zonas={zonas} zSel={zSel} onSelect={setZSel}/>
           </div>
           {/* Lista de zonas clicáveis */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -639,82 +570,116 @@ function PgMovimentacao(){
 
 function PgGerZonas(){
   const [zonas,setZonas]=useState([]),[edit,setEdit]=useState(null),[nome,setNome]=useState(""),[desc,setDesc]=useState(""),[preco,setPreco]=useState(""),[msg,setMsg]=useState("")
-  const [desenhando,setDesenhando]=useState(false),[pontos,setPontos]=useState([])
-  const mapRef=useRef(null),mapInstRef=useRef(null),markersRef=useRef([]),polyRef=useRef(null)
+  const [desenhando,setDesenhando]=useState(false),[centro,setCentro]=useState(null),[raio,setRaio]=useState(200)
+  const mapRef2=useRef(null),mapInst2=useRef(null),circleRef2=useRef(null),markerRef2=useRef(null)
   const carregar=()=>{api.get("/zonas").then(r=>setZonas(r.data||[])).catch(()=>{})}
   useEffect(()=>{carregar()},[])
 
   useEffect(()=>{
-    if(!desenhando)return
-    const loadMap=()=>{
-      if(!window.L){const s=document.createElement("script");s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";s.onload=()=>initMap(window.L);document.head.appendChild(s);if(!document.getElementById("leaflet-css")){const l=document.createElement("link");l.id="leaflet-css";l.rel="stylesheet";l.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(l)}}else{initMap(window.L)}
-    }
-    const initMap=(L)=>{
-      if(mapInstRef.current){mapInstRef.current.remove();mapInstRef.current=null}
-      if(!mapRef.current)return
-      const map=L.map(mapRef.current,{center:[-22.4307,-45.4510],zoom:15})
+    if(!desenhando){if(mapInst2.current){mapInst2.current.remove();mapInst2.current=null};return}
+    const doInit=()=>{
+      if(mapInst2.current){mapInst2.current.remove();mapInst2.current=null}
+      if(!mapRef2.current)return
+      const L=window.L
+      const map=L.map(mapRef2.current,{center:[-22.4270,-45.4530],zoom:15})
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"OpenStreetMap",maxZoom:19}).addTo(map)
-      mapInstRef.current=map
+      mapInst2.current=map
+      zonas.forEach(z=>{if(z.lat&&z.lng){L.circle([z.lat,z.lng],{radius:z.raio||200,color:"#94a3b8",fillColor:"#94a3b8",fillOpacity:0.08,weight:1,dashArray:"4 3"}).addTo(map);L.marker([z.lat,z.lng],{icon:L.divIcon({className:"",html:"<span style=\"background:#64748b;color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;\">"+z.nome+"</span>",iconSize:[60,18],iconAnchor:[30,9]})}).addTo(map)}})
       map.on("click",(e)=>{
         const{lat,lng}=e.latlng
-        const newPontos=[...pontos,[lat,lng]]
-        setPontos(newPontos)
-        const marker=L.circleMarker([lat,lng],{radius:6,color:"#2563eb",fillColor:"#2563eb",fillOpacity:1}).addTo(map)
-        markersRef.current.push(marker)
-        if(polyRef.current)polyRef.current.remove()
-        if(newPontos.length>=3){
-          polyRef.current=L.polygon(newPontos,{color:"#2563eb",fillColor:"#2563eb",fillOpacity:0.2,weight:2}).addTo(map)
-        }
+        setCentro({lat,lng})
+        if(markerRef2.current)markerRef2.current.remove()
+        if(circleRef2.current)circleRef2.current.remove()
+        markerRef2.current=L.circleMarker([lat,lng],{radius:7,color:"#2563eb",fillColor:"#2563eb",fillOpacity:1}).addTo(map)
+        circleRef2.current=L.circle([lat,lng],{radius:raio,color:"#2563eb",fillColor:"#2563eb",fillOpacity:0.15,weight:2}).addTo(map)
       })
     }
-    loadMap()
-    return()=>{if(mapInstRef.current){mapInstRef.current.remove();mapInstRef.current=null};markersRef.current=[];polyRef.current=null}
+    if(!window.L){const s=document.createElement("script");s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";s.onload=()=>doInit();document.head.appendChild(s);if(!document.getElementById("leaflet-css-admin")){const l=document.createElement("link");l.id="leaflet-css-admin";l.rel="stylesheet";l.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(l)}}else{setTimeout(doInit,100)}
+    return()=>{if(mapInst2.current){mapInst2.current.remove();mapInst2.current=null}}
   },[desenhando])
 
-  const criar=async()=>{if(!nome||!preco){setMsg("Preencha nome e preco");return};try{await api.post("/zonas",{nome,descricao:desc,preco_hora:parseFloat(preco)});setNome("");setDesc("");setPreco("");setPontos([]);setDesenhando(false);setMsg("Zona criada");carregar()}catch(err){setMsg("Erro")}}
-  const salvar=async(z)=>{try{await api.put("/zonas/"+z.id,{nome:z.nome,descricao:z.descricao,preco_hora:z.preco_hora,ativo:z.ativo});setEdit(null);setMsg("Salvo");carregar()}catch(err){setMsg("Erro")}}
-  const limparPontos=()=>{setPontos([]);if(mapInstRef.current){markersRef.current.forEach(m=>m.remove());markersRef.current=[];if(polyRef.current){polyRef.current.remove();polyRef.current=null}}}
+  useEffect(()=>{
+    if(!centro||!mapInst2.current||!window.L)return
+    if(circleRef2.current)circleRef2.current.remove()
+    circleRef2.current=window.L.circle([centro.lat,centro.lng],{radius:raio,color:"#2563eb",fillColor:"#2563eb",fillOpacity:0.15,weight:2}).addTo(mapInst2.current)
+  },[raio])
+
+  const criar=async()=>{if(!nome||!preco){setMsg("Preencha nome e preco");return};try{await api.post("/zonas",{nome,descricao:desc,preco_hora:parseFloat(preco),lat:centro?.lat||null,lng:centro?.lng||null,raio});setNome("");setDesc("");setPreco("");setCentro(null);setRaio(200);setDesenhando(false);setMsg("Zona criada");carregar()}catch(err){setMsg("Erro")}}
+  const salvar=async(z)=>{try{await api.put("/zonas/"+z.id,{nome:z.nome,descricao:z.descricao,preco_hora:z.preco_hora,ativo:z.ativo,lat:z.lat,lng:z.lng,raio:z.raio});setEdit(null);setMsg("Salvo");carregar()}catch(err){setMsg("Erro")}}
+  const excluir=async(z)=>{if(!confirm("Excluir a zona "+z.nome+"?"))return;try{await api.delete("/zonas/"+z.id);setMsg("Zona excluida");carregar()}catch(err){setMsg(err.response?.data?.erro||"Erro ao excluir")}}
 
   return(
     <div className="space-y-6">
-      <div className="flex items-center justify-between"><h2 className="text-2xl font-extrabold text-slate-800">Zonas e Precos</h2><button onClick={()=>setDesenhando(!desenhando)} className={`px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer transition ${desenhando?"bg-red-100 text-red-600":"bg-blue-600 text-white hover:bg-blue-700"}`}>{desenhando?"Fechar mapa":"+ Nova zona no mapa"}</button></div>
+      <div className="flex items-center justify-between"><h2 className="text-2xl font-extrabold text-slate-800">Zonas e Precos</h2><button onClick={()=>{setDesenhando(!desenhando);setCentro(null)}} className={`px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer transition ${desenhando?"bg-red-100 text-red-600 hover:bg-red-200":"bg-blue-600 text-white hover:bg-blue-700"}`}>{desenhando?"Fechar mapa":"+ Nova zona no mapa"}</button></div>
       {msg&&<p className="text-sm p-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200">{msg}</p>}
-      {desenhando&&(<div className="bg-white p-6 rounded-xl border border-slate-200 space-y-4">
-        <p className="text-sm text-slate-500">Clique no mapa para marcar os pontos da zona. Minimo 3 pontos para formar a area.</p>
-        <div className="rounded-xl overflow-hidden border border-slate-200" style={{height:"350px"}}><div ref={mapRef} style={{width:"100%",height:"100%"}}/></div>
-        <div className="flex items-center gap-2"><span className="text-xs text-slate-400">{pontos.length} pontos marcados</span>{pontos.length>0&&<button onClick={limparPontos} className="text-xs text-red-500 cursor-pointer font-semibold">Limpar pontos</button>}</div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><input placeholder="Nome da zona" className="border border-slate-200 p-3 rounded-lg text-sm" value={nome} onChange={e=>setNome(e.target.value)}/><input placeholder="Descricao" className="border border-slate-200 p-3 rounded-lg text-sm" value={desc} onChange={e=>setDesc(e.target.value)}/><div className="flex gap-2"><input placeholder="R$/hora" type="number" step="0.5" className="flex-1 border border-slate-200 p-3 rounded-lg text-sm" value={preco} onChange={e=>setPreco(e.target.value)}/><button onClick={criar} className="bg-blue-600 text-white px-6 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700 whitespace-nowrap">Criar</button></div></div>
+      {desenhando&&(<div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <p className="text-sm text-slate-500">Clique no mapa para definir o centro da zona. Ajuste o raio com o controle abaixo.</p>
+        <div className="rounded-xl overflow-hidden border border-slate-200" style={{height:"350px"}}><div ref={mapRef2} style={{width:"100%",height:"100%"}}/></div>
+        {centro&&<div className="space-y-3">
+          <div className="flex items-center gap-4"><label className="text-sm font-semibold text-slate-600 whitespace-nowrap">Raio: {raio}m</label><input type="range" min="50" max="800" step="25" value={raio} onChange={e=>setRaio(parseInt(e.target.value))} className="flex-1 accent-blue-600"/></div>
+          <p className="text-xs text-slate-400">Centro: {centro.lat.toFixed(6)}, {centro.lng.toFixed(6)}</p>
+        </div>}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><input placeholder="Nome da zona" className="border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:border-blue-400" value={nome} onChange={e=>setNome(e.target.value)}/><input placeholder="Descricao" className="border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:border-blue-400" value={desc} onChange={e=>setDesc(e.target.value)}/><div className="flex gap-2"><input placeholder="R$/hora" type="number" step="0.5" className="flex-1 border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:border-blue-400" value={preco} onChange={e=>setPreco(e.target.value)}/><button onClick={criar} disabled={!centro||!nome||!preco} className={`px-6 rounded-lg text-sm font-semibold cursor-pointer whitespace-nowrap ${centro&&nome&&preco?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed"}`}>Criar</button></div></div>
       </div>)}
-      {!desenhando&&(<div className="bg-white p-6 rounded-xl border border-slate-200">
-        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Adicionar rapido</p>
+      {!desenhando&&(<div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Adicionar rapido (sem mapa)</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4"><input placeholder="Nome da zona" className="border border-slate-200 p-3 rounded-lg text-sm" value={nome} onChange={e=>setNome(e.target.value)}/><input placeholder="Descricao" className="border border-slate-200 p-3 rounded-lg text-sm" value={desc} onChange={e=>setDesc(e.target.value)}/><div className="flex gap-2"><input placeholder="R$/hora" type="number" step="0.5" className="flex-1 border border-slate-200 p-3 rounded-lg text-sm" value={preco} onChange={e=>setPreco(e.target.value)}/><button onClick={criar} className="bg-blue-600 text-white px-6 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700 whitespace-nowrap">Criar</button></div></div>
       </div>)}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-50">{zonas.map(z=><div key={z.id} className="px-6 py-4">{edit===z.id?(<div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center"><input defaultValue={z.nome} className="border border-slate-200 p-2.5 rounded-lg text-sm" onChange={e=>{z.nome=e.target.value}}/><input defaultValue={z.descricao} className="border border-slate-200 p-2.5 rounded-lg text-sm" onChange={e=>{z.descricao=e.target.value}}/><input defaultValue={z.preco_hora} type="number" step="0.5" className="border border-slate-200 p-2.5 rounded-lg text-sm" onChange={e=>{z.preco_hora=e.target.value}}/><div className="flex gap-2"><button onClick={()=>salvar(z)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm cursor-pointer font-semibold">Salvar</button><button onClick={()=>setEdit(null)} className="text-slate-400 cursor-pointer text-sm">Cancelar</button></div></div>):(<div className="flex items-center justify-between"><div><p className="font-semibold text-slate-800 text-lg">{z.nome}</p><p className="text-sm text-slate-400">{z.descricao}</p></div><div className="flex items-center gap-4"><span className="text-lg font-extrabold text-blue-600">R$ {parseFloat(z.preco_hora).toFixed(2)}<span className="text-sm font-normal text-slate-400">/h</span></span><button onClick={()=>setEdit(z.id)} className="text-blue-600 cursor-pointer text-sm font-semibold hover:text-blue-800">Editar</button></div></div>)}</div>)}</div>
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-50">{zonas.map(z=><div key={z.id} className="px-6 py-4">{edit===z.id?(<div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center"><input defaultValue={z.nome} className="border border-slate-200 p-2.5 rounded-lg text-sm" onChange={e=>{z.nome=e.target.value}}/><input defaultValue={z.descricao} className="border border-slate-200 p-2.5 rounded-lg text-sm" onChange={e=>{z.descricao=e.target.value}}/><input defaultValue={z.preco_hora} type="number" step="0.5" className="border border-slate-200 p-2.5 rounded-lg text-sm" onChange={e=>{z.preco_hora=e.target.value}}/><div className="flex gap-2"><button onClick={()=>salvar(z)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm cursor-pointer font-semibold">Salvar</button><button onClick={()=>setEdit(null)} className="text-slate-400 cursor-pointer text-sm">Cancelar</button></div></div>):(<div className="flex items-center justify-between"><div className="flex items-center gap-3">{z.lat&&<div className="w-2 h-2 rounded-full bg-blue-500"/>}<div><p className="font-semibold text-slate-800 text-lg">{z.nome}</p><p className="text-sm text-slate-400">{z.descricao}{z.raio?" · Raio: "+z.raio+"m":""}</p></div></div><div className="flex items-center gap-3"><span className="text-lg font-extrabold text-blue-600">R$ {parseFloat(z.preco_hora).toFixed(2)}<span className="text-sm font-normal text-slate-400">/h</span></span><button onClick={()=>setEdit(z.id)} className="text-blue-600 cursor-pointer text-sm font-semibold hover:text-blue-800">Editar</button><button onClick={()=>excluir(z)} className="text-red-400 cursor-pointer text-sm font-semibold hover:text-red-600">Excluir</button></div></div>)}</div>)}</div>
     </div>
   )
 }
 
 function PgFiscais(){
   const [fiscais,setFiscais]=useState([]),[nome,setNome]=useState(""),[email,setEmail]=useState(""),[cpf,setCpf]=useState(""),[msg,setMsg]=useState("")
+  const [excluindo,setExcluindo]=useState(null),[senhaExcluir,setSenhaExcluir]=useState("")
   const carregar=()=>{api.get("/usuarios").then(r=>setFiscais((r.data||[]).filter(u=>u.perfil==="fiscal"))).catch(()=>{})}
   useEffect(()=>{carregar()},[])
-  const criar=async()=>{if(!nome||!email||!cpf){setMsg("Preencha todos os campos");return};try{await api.post("/usuarios",{nome,email,telefone:"",perfil:"fiscal",cognito_id:null});setMsg("Fiscal cadastrado");setNome("");setEmail("");setCpf("");carregar()}catch(err){setMsg(err.response?.data?.erro||"Erro")}}
+  const criar=async()=>{if(!nome||!email||!cpf){setMsg("Preencha todos os campos");return};try{await api.post("/usuarios",{nome,email,telefone:"",perfil:"fiscal",cognito_id:null,cpf});setMsg("Fiscal cadastrado");setNome("");setEmail("");setCpf("");carregar()}catch(err){setMsg(err.response?.data?.erro||"Erro")}}
+  const excluir=async(f)=>{if(senhaExcluir!=="Excluir"){setMsg("Digite 'Excluir' para confirmar");return};try{await api.delete("/usuarios/"+f.id);setMsg("Fiscal excluido");setExcluindo(null);setSenhaExcluir("");carregar()}catch(err){setMsg(err.response?.data?.erro||"Erro ao excluir")}}
+  const formatCpf=(v)=>{const n=v.replace(/\D/g,'').slice(0,11);if(n.length<=3)return n;if(n.length<=6)return n.replace(/(\d{3})(\d+)/,'$1.$2');if(n.length<=9)return n.replace(/(\d{3})(\d{3})(\d+)/,'$1.$2.$3');return n.replace(/(\d{3})(\d{3})(\d{3})(\d+)/,'$1.$2.$3-$4')}
   return(
     <div className="space-y-6">
       <h2 className="text-2xl font-extrabold text-slate-800">Fiscais</h2>
       {msg&&<p className="text-sm p-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200">{msg}</p>}
       <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm">
         <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Novo fiscal</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4"><input placeholder="Nome completo" className="border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" value={nome} onChange={e=>setNome(e.target.value)}/><input placeholder="Email" className="border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" value={email} onChange={e=>setEmail(e.target.value)}/><div className="flex gap-2"><input placeholder="CPF" className="flex-1 border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" value={cpf} onChange={e=>setCpf(e.target.value)}/><button onClick={criar} className="bg-blue-600 text-white px-6 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700 whitespace-nowrap">Cadastrar</button></div></div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4"><input placeholder="Nome completo" className="border border-slate-200 p-3 rounded-lg text-sm" value={nome} onChange={e=>setNome(e.target.value)}/><input placeholder="Email" className="border border-slate-200 p-3 rounded-lg text-sm" value={email} onChange={e=>setEmail(e.target.value)}/><input placeholder="CPF" className="border border-slate-200 p-3 rounded-lg text-sm" value={cpf} onChange={e=>setCpf(formatCpf(e.target.value))}/><button onClick={criar} className="bg-blue-600 text-white px-6 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700">Cadastrar</button></div>
       </div>
-      {fiscais.length>0&&<div className="bg-white rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-50">{fiscais.map(f=><div key={f.id} className="flex items-center justify-between px-6 py-4"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center"><span className="text-blue-600 text-sm font-bold">{(f.nome||"F").split(" ").map(n=>n[0]).join("").slice(0,2)}</span></div><div><p className="font-semibold text-slate-800">{f.nome}</p><p className="text-sm text-slate-400">{f.email}</p></div></div><span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">Ativo</span></div>)}</div>}
-    </div>
+      {fiscais.length>0&&<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-50">{fiscais.map(f=><div key={f.id} className="px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center"><span className="text-blue-600 text-sm font-bold">{(f.nome||"F").split(" ").map(n=>n[0]).join("").slice(0,2)}</span></div><div><p className="font-semibold text-slate-800">{f.nome}</p><p className="text-sm text-slate-400">{f.email}{f.cpf?" · "+f.cpf:""}</p></div></div>
+          <div className="flex items-center gap-3"><span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">Ativo</span><button onClick={()=>{setExcluindo(excluindo===f.id?null:f.id);setSenhaExcluir("")}} className="text-red-400 cursor-pointer text-sm font-semibold hover:text-red-600">Excluir</button></div>
+        </div>
+        {excluindo===f.id&&(<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-xs text-red-500 mb-2">Digite "Excluir" para confirmar</p><div className="flex gap-2"><input placeholder='Digite "Excluir"' className="flex-1 border border-red-200 p-2 rounded text-sm" value={senhaExcluir} onChange={e=>setSenhaExcluir(e.target.value)}/><button onClick={()=>excluir(f)} className="bg-red-600 text-white px-4 rounded text-sm font-semibold cursor-pointer hover:bg-red-700">Confirmar</button><button onClick={()=>setExcluindo(null)} className="text-slate-400 cursor-pointer text-sm">Cancelar</button></div></div>)}
+      </div>)}</div>}
+    
+      {configOpen&&<div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={()=>setConfigOpen(false)}><div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 space-y-4" onClick={e=>e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-slate-800">Configuracoes</h3>
+        <button onClick={()=>{setConfigOpen(false);localStorage.clear();navigate("/")}} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer text-left"><span className="text-slate-700 font-medium">Sair da conta</span></button>
+        {usuario?.perfil==="motorista"&&<div className="border-t border-slate-100 pt-4"><p className="text-sm font-semibold text-red-500 mb-2">Excluir conta</p><p className="text-xs text-slate-400 mb-2">Digite sua senha para confirmar</p><input type="password" placeholder="Sua senha" className="w-full border border-red-200 p-2 rounded text-sm" value={senhaExcluir} onChange={e=>setSenhaExcluir(e.target.value)}/>{excluirErro&&<p className="text-red-500 text-xs mt-1">{excluirErro}</p>}<button onClick={excluirConta} className="w-full bg-red-600 text-white py-2 rounded-lg text-sm font-semibold cursor-pointer hover:bg-red-700 mt-2">Excluir minha conta</button></div>}
+        <button onClick={()=>setConfigOpen(false)} className="w-full text-center text-sm text-slate-400 cursor-pointer">Fechar</button>
+      </div></div>}
+</div>
   )
 }
 
 export default function Dashboard(){
   const navigate=useNavigate()
   const [usuario,setUsuario]=useState(null),[saldo,setSaldo]=useState("0.00"),[page,setPage]=useState(""),[mob,setMob]=useState(false)
+  const [configOpen,setConfigOpen]=useState(false),[senhaExcluir,setSenhaExcluir]=useState(""),[excluirErro,setExcluirErro]=useState("")
+
+  const excluirConta=async()=>{
+    setExcluirErro("")
+    if(!senhaExcluir){setExcluirErro("Digite sua senha");return}
+    try{
+      await api.post("/auth/verificar-senha",{email:usuario.email,senha:senhaExcluir})
+      if(!confirm("Tem certeza que deseja excluir sua conta? Esta acao e irreversivel."))return
+      await api.delete("/usuarios/"+usuario.id)
+      localStorage.clear()
+      navigate("/")
+    }catch(err){setExcluirErro(err.response?.data?.erro||"Senha incorreta")}
+  }
   useEffect(()=>{try{const u=localStorage.getItem("usuario");if(!u)return navigate("/login");const p=JSON.parse(u);setUsuario(p);setSaldo(p.saldo||"0.00");setPage(p.perfil==="admin"?"movimentacao":p.perfil==="fiscal"?"consulta":"inicio")}catch(err){localStorage.clear();navigate("/login")}},[])
   useEffect(()=>{if(usuario?.id)api.get("/carteira/saldo/"+usuario.id).then(r=>setSaldo(r.data.saldo)).catch(()=>{})},[usuario,page])
   const logout=()=>{localStorage.clear();navigate("/")}
@@ -732,6 +697,7 @@ export default function Dashboard(){
         onLogout={logout} 
         mob={mob} 
         setMob={setMob}
+        onConfig={()=>setConfigOpen(true)}
       />
       
       <div className="flex-1 flex flex-col overflow-hidden">

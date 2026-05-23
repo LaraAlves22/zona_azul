@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import LoginFiscal from './pages/LoginFiscal'
 import Cadastro from './pages/Cadastro'
 import Confirmar from './pages/Confirmar'
+import EsqueciSenha from './pages/EsqueciSenha'
 import Dashboard from './pages/Dashboard'
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/login-fiscal" element={<LoginFiscal />} />
         <Route path="/cadastro" element={<Cadastro />} />
         <Route path="/confirmar" element={<Confirmar />} />
+        <Route path="/esqueci-senha" element={<EsqueciSenha />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </div>
