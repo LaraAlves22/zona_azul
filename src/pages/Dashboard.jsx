@@ -631,36 +631,65 @@ function PgGerZonas(){
 }
 
 function PgFiscais(){
-  const [fiscais,setFiscais]=useState([]),[nome,setNome]=useState(""),[email,setEmail]=useState(""),[cpf,setCpf]=useState(""),[msg,setMsg]=useState("")
-  const [excluindo,setExcluindo]=useState(null),[senhaExcluir,setSenhaExcluir]=useState("")
+  const [fiscais,setFiscais]=useState([])
+  const [nome,setNome]=useState("")
+  const [email,setEmail]=useState("")
+  const [cpf,setCpf]=useState("")
+  const [msg,setMsg]=useState("")
+  const [excluindo,setExcluindo]=useState(null)
+  const [confirmTxt,setConfirmTxt]=useState("")
+
+  const formatCpf=(v)=>{const n=v.replace(/[^0-9]/g,"").slice(0,11);if(n.length<=3)return n;if(n.length<=6)return n.slice(0,3)+"."+n.slice(3);if(n.length<=9)return n.slice(0,3)+"."+n.slice(3,6)+"."+n.slice(6);return n.slice(0,3)+"."+n.slice(3,6)+"."+n.slice(6,9)+"-"+n.slice(9)}
+
   const carregar=()=>{api.get("/usuarios").then(r=>setFiscais((r.data||[]).filter(u=>u.perfil==="fiscal"))).catch(()=>{})}
   useEffect(()=>{carregar()},[])
-  const criar=async()=>{if(!nome||!email||!cpf){setMsg("Preencha todos os campos");return};try{await api.post("/usuarios",{nome,email,telefone:"",perfil:"fiscal",cognito_id:null,cpf});setMsg("Fiscal cadastrado");setNome("");setEmail("");setCpf("");carregar()}catch(err){setMsg(err.response?.data?.erro||"Erro")}}
-  const excluir=async(f)=>{if(senhaExcluir!=="Excluir"){setMsg("Digite 'Excluir' para confirmar");return};try{await api.delete("/usuarios/"+f.id);setMsg("Fiscal excluido");setExcluindo(null);setSenhaExcluir("");carregar()}catch(err){setMsg(err.response?.data?.erro||"Erro ao excluir")}}
-  const formatCpf=(v)=>{const n=v.replace(/\D/g,'').slice(0,11);if(n.length<=3)return n;if(n.length<=6)return n.replace(/(\d{3})(\d+)/,'$1.$2');if(n.length<=9)return n.replace(/(\d{3})(\d{3})(\d+)/,'$1.$2.$3');return n.replace(/(\d{3})(\d{3})(\d{3})(\d+)/,'$1.$2.$3-$4')}
+
+  const criar=async()=>{
+    if(!nome||!email||!cpf){setMsg("Preencha todos os campos");return}
+    try{await api.post("/usuarios",{nome,email,telefone:"",perfil:"fiscal",cognito_id:null,cpf});setMsg("Fiscal cadastrado");setNome("");setEmail("");setCpf("");carregar()}catch(err){setMsg(err.response?.data?.erro||"Erro")}
+  }
+
+  const excluir=async(f)=>{
+    if(confirmTxt!=="Excluir"){setMsg("Digite Excluir para confirmar");return}
+    try{await api.delete("/usuarios/"+f.id);setMsg("Fiscal excluido");setExcluindo(null);setConfirmTxt("");carregar()}catch(err){setMsg(err.response?.data?.erro||"Erro ao excluir")}
+  }
+
   return(
     <div className="space-y-6">
       <h2 className="text-2xl font-extrabold text-slate-800">Fiscais</h2>
       {msg&&<p className="text-sm p-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200">{msg}</p>}
-      <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Novo fiscal</p>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4"><input placeholder="Nome completo" className="border border-slate-200 p-3 rounded-lg text-sm" value={nome} onChange={e=>setNome(e.target.value)}/><input placeholder="Email" className="border border-slate-200 p-3 rounded-lg text-sm" value={email} onChange={e=>setEmail(e.target.value)}/><input placeholder="CPF" className="border border-slate-200 p-3 rounded-lg text-sm" value={cpf} onChange={e=>setCpf(formatCpf(e.target.value))}/><button onClick={criar} className="bg-blue-600 text-white px-6 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700">Cadastrar</button></div>
-      </div>
-      {fiscais.length>0&&<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-50">{fiscais.map(f=><div key={f.id} className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center"><span className="text-blue-600 text-sm font-bold">{(f.nome||"F").split(" ").map(n=>n[0]).join("").slice(0,2)}</span></div><div><p className="font-semibold text-slate-800">{f.nome}</p><p className="text-sm text-slate-400">{f.email}{f.cpf?" · "+f.cpf:""}</p></div></div>
-          <div className="flex items-center gap-3"><span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">Ativo</span><button onClick={()=>{setExcluindo(excluindo===f.id?null:f.id);setSenhaExcluir("")}} className="text-red-400 cursor-pointer text-sm font-semibold hover:text-red-600">Excluir</button></div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <input placeholder="Nome completo" className="border border-slate-200 p-3 rounded-lg text-sm" value={nome} onChange={e=>setNome(e.target.value)}/>
+          <input placeholder="Email" className="border border-slate-200 p-3 rounded-lg text-sm" value={email} onChange={e=>setEmail(e.target.value)}/>
+          <input placeholder="CPF" className="border border-slate-200 p-3 rounded-lg text-sm" value={cpf} onChange={e=>setCpf(formatCpf(e.target.value))}/>
+          <button onClick={criar} className="bg-blue-600 text-white px-6 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700">Cadastrar</button>
         </div>
-        {excluindo===f.id&&(<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-xs text-red-500 mb-2">Digite "Excluir" para confirmar</p><div className="flex gap-2"><input placeholder='Digite "Excluir"' className="flex-1 border border-red-200 p-2 rounded text-sm" value={senhaExcluir} onChange={e=>setSenhaExcluir(e.target.value)}/><button onClick={()=>excluir(f)} className="bg-red-600 text-white px-4 rounded text-sm font-semibold cursor-pointer hover:bg-red-700">Confirmar</button><button onClick={()=>setExcluindo(null)} className="text-slate-400 cursor-pointer text-sm">Cancelar</button></div></div>)}
-      </div>)}</div>}
-    
-      {configOpen&&<div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={()=>setConfigOpen(false)}><div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 space-y-4" onClick={e=>e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-slate-800">Configuracoes</h3>
-        <button onClick={()=>{setConfigOpen(false);localStorage.clear();navigate("/")}} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer text-left"><span className="text-slate-700 font-medium">Sair da conta</span></button>
-        {usuario?.perfil==="motorista"&&<div className="border-t border-slate-100 pt-4"><p className="text-sm font-semibold text-red-500 mb-2">Excluir conta</p><p className="text-xs text-slate-400 mb-2">Digite sua senha para confirmar</p><input type="password" placeholder="Sua senha" className="w-full border border-red-200 p-2 rounded text-sm" value={senhaExcluir} onChange={e=>setSenhaExcluir(e.target.value)}/>{excluirErro&&<p className="text-red-500 text-xs mt-1">{excluirErro}</p>}<button onClick={excluirConta} className="w-full bg-red-600 text-white py-2 rounded-lg text-sm font-semibold cursor-pointer hover:bg-red-700 mt-2">Excluir minha conta</button></div>}
-        <button onClick={()=>setConfigOpen(false)} className="w-full text-center text-sm text-slate-400 cursor-pointer">Fechar</button>
-      </div></div>}
-</div>
+      </div>
+      {fiscais.length>0&&<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-50">
+        {fiscais.map(f=><div key={f.id} className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center"><span className="text-blue-600 text-sm font-bold">{(f.nome||"F").split(" ").map(n=>n[0]).join("").slice(0,2)}</span></div>
+              <div><p className="font-semibold text-slate-800">{f.nome}</p><p className="text-sm text-slate-400">{f.email}{f.cpf?" - "+f.cpf:""}</p></div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">Ativo</span>
+              <button onClick={()=>{setExcluindo(excluindo===f.id?null:f.id);setConfirmTxt("")}} className="text-red-400 cursor-pointer text-sm font-semibold hover:text-red-600">Excluir</button>
+            </div>
+          </div>
+          {excluindo===f.id&&<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-xs text-red-500 mb-2">Digite "Excluir" para confirmar</p>
+            <div className="flex gap-2">
+              <input placeholder="Excluir" className="flex-1 border border-red-200 p-2 rounded text-sm" value={confirmTxt} onChange={e=>setConfirmTxt(e.target.value)}/>
+              <button onClick={()=>excluir(f)} className="bg-red-600 text-white px-4 rounded text-sm font-semibold cursor-pointer hover:bg-red-700">Confirmar</button>
+              <button onClick={()=>setExcluindo(null)} className="text-slate-400 cursor-pointer text-sm">Cancelar</button>
+            </div>
+          </div>}
+        </div>)}
+      </div>}
+    </div>
   )
 }
 
