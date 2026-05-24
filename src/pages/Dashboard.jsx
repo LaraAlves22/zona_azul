@@ -12,7 +12,7 @@ function Sidebar({page,setPage,perfil,usuario,onLogout,mob,setMob,onConfig}){
   const [nc,setNc]=useState(0)
   useEffect(()=>{if(perfil==="motorista"&&usuario?.id)api.get("/notificacoes/nao-lidas/"+usuario.id).then(r=>setNc(r.data.count||0)).catch(()=>{})},[page])
   const menus={
-    motorista:[{id:"inicio",l:"Inicio",d:"M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1"},{id:"veiculos",l:"Veiculos",d:"M8 17h.01M12 17h.01M16 17h.01M3 9h18M4 5h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1z"},{id:"estacionar",l:"Estacionar",d:"M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"},{id:"carteira",l:"Carteira",d:"M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"},{id:"historico",l:"Historico",d:"M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"},{id:"notifs",l:"Notificacoes",d:"M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",badge:nc}],
+    motorista:[{id:"inicio",l:"Inicio",d:"M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1"},{id:"veiculos",l:"Veiculos",d:"M8 17h.01M12 17h.01M16 17h.01M3 9h18M4 5h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1z"},{id:"estacionar",l:"Estacionar",d:"M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"},{id:"carteira",l:"Carteira",d:"M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"},{id:"historico",l:"Historico",d:"M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"},{id:"perfil",l:"Meu Perfil",d:"M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"},{id:"notifs",l:"Notificacoes",d:"M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",badge:nc}],
     fiscal:[{id:"consulta",l:"Consultar Placa",d:"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"},{id:"pendentes",l:"Avisos Pendentes",d:"M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"},{id:"resumo",l:"Resumo do Dia",d:"M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"}],
     admin:[{id:"movimentacao",l:"Movimentacao",d:"M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"},{id:"ger-zonas",l:"Zonas e Precos",d:"M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"},{id:"fiscais",l:"Fiscais",d:"M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"}]
   }
@@ -502,67 +502,104 @@ function PgConsulta({usuario}){
 }
 
 function PgPendentes(){
-  const [fisc,setFisc]=useState([])
+  const [fisc,setFisc]=useState([]),[filtro,setFiltro]=useState("")
   useEffect(()=>{api.get("/fiscalizacoes").then(r=>setFisc(r.data||[])).catch(()=>{})},[])
+  const filtered=filtro?fisc.filter(f=>f.criado_em?.startsWith(filtro)):fisc
+  const cores={regularizado:"bg-emerald-50 text-emerald-600 border-emerald-200",aguardando:"bg-amber-50 text-amber-600 border-amber-200",multado:"bg-purple-50 text-purple-600 border-purple-200",irregular:"bg-red-50 text-red-600 border-red-200"}
   return(
     <div className="space-y-6">
-      <h2 className="text-2xl font-extrabold text-slate-800">Avisos Pendentes</h2>
-      {fisc.length===0?<div className="bg-white p-10 rounded-2xl border border-slate-200 text-center shadow-sm"><p className="text-slate-400">Nenhum aviso</p></div>:<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-50">{fisc.map(f=><div key={f.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50/50 transition"><div className="flex items-center gap-4"><div className={`w-10 h-10 rounded-xl flex items-center justify-center ${f.status_atual==="regularizado"?"bg-emerald-50":"f.aguardando_prazo"?"bg-amber-50":"bg-red-50"}`}><span className={`font-mono font-bold text-xs ${f.status_atual==="regularizado"?"text-emerald-600":f.aguardando_prazo?"text-amber-600":"text-red-600"}`}>P</span></div><div><p className="font-mono font-bold text-slate-800">{f.placa}</p><p className="text-sm text-slate-400">{f.zona_nome} · {f.fiscal_nome}</p></div></div><div className="text-right"><span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${f.status_atual==="regularizado"?"bg-emerald-50 text-emerald-600 border border-emerald-200":f.aguardando_prazo?"bg-amber-50 text-amber-600 border border-amber-200":"bg-red-50 text-red-600 border border-red-200"}`}>{f.status_atual==="regularizado"?"Regularizado":f.aguardando_prazo?"Aguardando":"Irregular"}</span><p className="text-[11px] text-slate-400 mt-1">{new Date(f.criado_em).toLocaleString("pt-BR")}</p></div></div>)}</div>}
+      <div className="flex items-center justify-between flex-wrap gap-3"><h2 className="text-2xl font-extrabold text-slate-800">Avisos Pendentes</h2><div className="flex items-center gap-2"><input type="date" className="border border-slate-200 p-2 rounded-lg text-sm" value={filtro} onChange={e=>setFiltro(e.target.value)}/>{filtro&&<button onClick={()=>setFiltro("")} className="text-sm text-blue-600 cursor-pointer font-semibold">Limpar</button>}</div></div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 text-center"><p className="text-[10px] text-slate-400 uppercase tracking-wider">Total</p><p className="text-2xl font-extrabold text-slate-800 mt-1">{filtered.length}</p></div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 text-center"><p className="text-[10px] text-slate-400 uppercase tracking-wider">Irregulares</p><p className="text-2xl font-extrabold text-red-500 mt-1">{filtered.filter(f=>f.status_atual==="irregular").length}</p></div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 text-center"><p className="text-[10px] text-slate-400 uppercase tracking-wider">Aguardando</p><p className="text-2xl font-extrabold text-amber-500 mt-1">{filtered.filter(f=>f.status_atual==="aguardando").length}</p></div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 text-center"><p className="text-[10px] text-slate-400 uppercase tracking-wider">Regularizados</p><p className="text-2xl font-extrabold text-emerald-600 mt-1">{filtered.filter(f=>f.status_atual==="regularizado"||f.status_atual==="multado").length}</p></div>
+      </div>
+      {filtered.length===0?<div className="bg-white p-10 rounded-2xl border border-slate-200 text-center"><p className="text-slate-400">Nenhum aviso no periodo</p></div>:<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-50">{filtered.map(f=><div key={f.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50/50 transition"><div className="flex items-center gap-4"><div><p className="font-mono font-bold text-slate-800">{f.placa}</p><p className="text-sm text-slate-400">{f.zona_nome} · {f.fiscal_nome}</p></div></div><div className="text-right"><span className={"text-[11px] font-semibold px-3 py-1 rounded-full border "+(cores[f.status_atual]||cores.irregular)}>{f.status_atual==="regularizado"?"Regularizado":f.status_atual==="aguardando"?"Aguardando":f.status_atual==="multado"?"Multado":"Irregular"}</span><p className="text-[11px] text-slate-400 mt-1">{new Date(f.criado_em).toLocaleString("pt-BR")}</p></div></div>)}</div>}
     </div>
   )
 }
 
 function PgResumo(){
   const [sessoes,setSessoes]=useState([]),[fisc,setFisc]=useState([]),[contagem,setContagem]=useState({total:0,irregulares:0,regularizados:0})
+  const [periodo,setPeriodo]=useState("hoje"),[dataInicio,setDataInicio]=useState(""),[dataFim,setDataFim]=useState("")
   useEffect(()=>{
     api.get("/sessoes").then(r=>setSessoes(r.data||[])).catch(()=>{})
     api.get("/fiscalizacoes").then(r=>setFisc(r.data||[])).catch(()=>{})
     api.get("/fiscalizacoes/contagem").then(r=>setContagem(r.data)).catch(()=>{})
   },[])
-  const hoje=new Date().toISOString().slice(0,10),sH=sessoes.filter(s=>s.criado_em?.startsWith(hoje)),rec=sH.reduce((a,s)=>a+parseFloat(s.valor_total||0),0)
+  const hoje=new Date().toISOString().slice(0,10)
+  const filtrar=(lista)=>{
+    if(periodo==="hoje")return lista.filter(s=>s.criado_em?.startsWith(hoje))
+    if(periodo==="semana"){const d=new Date();d.setDate(d.getDate()-7);return lista.filter(s=>new Date(s.criado_em)>=d)}
+    if(periodo==="mes"){const d=new Date();d.setMonth(d.getMonth()-1);return lista.filter(s=>new Date(s.criado_em)>=d)}
+    if(periodo==="custom"&&dataInicio)return lista.filter(s=>{const d=s.criado_em?.slice(0,10);return d>=dataInicio&&(!dataFim||d<=dataFim)})
+    return lista
+  }
+  const sF=filtrar(sessoes),fF=filtrar(fisc),rec=sF.reduce((a,s)=>a+parseFloat(s.valor_total||0),0)
   return(
     <div className="space-y-6">
-      <h2 className="text-2xl font-extrabold text-slate-800">Resumo do Dia</h2>
+      <div className="flex items-center justify-between flex-wrap gap-3"><h2 className="text-2xl font-extrabold text-slate-800">Resumo</h2>
+        <div className="flex items-center gap-2">
+          {["hoje","semana","mes","custom"].map(p=><button key={p} onClick={()=>setPeriodo(p)} className={"px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition "+(periodo===p?"bg-blue-600 text-white":"bg-slate-100 text-slate-400 hover:bg-slate-200")}>{p==="hoje"?"Hoje":p==="semana"?"7 dias":p==="mes"?"30 dias":"Periodo"}</button>)}
+        </div>
+      </div>
+      {periodo==="custom"&&<div className="flex items-center gap-3"><input type="date" className="border border-slate-200 p-2 rounded-lg text-sm" value={dataInicio} onChange={e=>setDataInicio(e.target.value)}/><span className="text-slate-400">ate</span><input type="date" className="border border-slate-200 p-2 rounded-lg text-sm" value={dataFim} onChange={e=>setDataFim(e.target.value)}/></div>}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Sessoes</p><p className="text-4xl font-extrabold text-slate-800 mt-3">{sH.length}</p><p className="text-xs text-slate-400 mt-1">ativadas hoje</p></div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Receita</p><p className="text-4xl font-extrabold text-emerald-600 mt-3">R$ {rec.toFixed(2)}</p><p className="text-xs text-slate-400 mt-1">arrecadado hoje</p></div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Fiscalizacoes</p><p className="text-4xl font-extrabold text-blue-600 mt-3">{contagem.total}</p><p className="text-xs text-slate-400 mt-1">{contagem.regularizados} regularizados</p></div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Irregulares</p><p className="text-4xl font-extrabold text-red-500 mt-3">{contagem.irregulares}</p><p className="text-xs text-slate-400 mt-1">pendentes agora</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Sessoes</p><p className="text-4xl font-extrabold text-slate-800 mt-3">{sF.length}</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Receita</p><p className="text-4xl font-extrabold text-emerald-600 mt-3">R$ {rec.toFixed(2)}</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Fiscalizacoes</p><p className="text-4xl font-extrabold text-blue-600 mt-3">{fF.length}</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Irregulares</p><p className="text-4xl font-extrabold text-red-500 mt-3">{fF.filter(f=>f.status_atual==="irregular").length}</p></div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Sessoes do dia</p></div>{sH.length===0?<p className="p-6 text-slate-400 text-sm text-center">Nenhuma sessao hoje</p>:<div className="divide-y divide-slate-50">{sH.slice(0,8).map(s=><div key={s.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{s.placa}</p><p className="text-[11px] text-slate-400">{s.zona_nome}</p></div><span className="text-sm font-extrabold text-slate-700">R${parseFloat(s.valor_total).toFixed(2)}</span></div>)}</div>}</div>
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Fiscalizacoes do dia</p></div>{fisc.length===0?<p className="p-6 text-slate-400 text-sm text-center">Nenhuma fiscalizacao hoje</p>:<div className="divide-y divide-slate-50">{fisc.filter(f=>f.criado_em?.startsWith(hoje)).slice(0,8).map(f=><div key={f.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{f.placa}</p><p className="text-[11px] text-slate-400">{f.fiscal_nome}</p></div><span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${f.status_atual==="regularizado"?"bg-emerald-50 text-emerald-600 border border-emerald-200":f.aguardando_prazo?"bg-amber-50 text-amber-600 border border-amber-200":"bg-red-50 text-red-600 border border-red-200"}`}>{f.status_atual==="regularizado"?"Regularizado":f.aguardando_prazo?"Aguardando":"Irregular"}</span></div>)}</div>}</div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Sessoes</p></div>{sF.length===0?<p className="p-6 text-slate-400 text-sm text-center">Nenhuma sessao</p>:<div className="divide-y divide-slate-50">{sF.slice(0,10).map(s=><div key={s.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{s.placa}</p><p className="text-[11px] text-slate-400">{s.zona_nome}</p></div><span className="text-sm font-extrabold text-slate-700">R${parseFloat(s.valor_total).toFixed(2)}</span></div>)}</div>}</div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Fiscalizacoes</p></div>{fF.length===0?<p className="p-6 text-slate-400 text-sm text-center">Nenhuma fiscalizacao</p>:<div className="divide-y divide-slate-50">{fF.slice(0,10).map(f=><div key={f.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{f.placa}</p><p className="text-[11px] text-slate-400">{f.fiscal_nome}</p></div><span className={"text-[11px] font-semibold px-3 py-1 rounded-full border "+(f.status_atual==="regularizado"?"bg-emerald-50 text-emerald-600 border-emerald-200":f.status_atual==="aguardando"?"bg-amber-50 text-amber-600 border-amber-200":"bg-red-50 text-red-600 border-red-200")}>{f.status_atual==="regularizado"?"Regularizado":f.status_atual==="aguardando"?"Aguardando":"Irregular"}</span></div>)}</div>}</div>
       </div>
     </div>
   )
 }
 
 function PgMovimentacao(){
-  const [sessoes,setSessoes]=useState([]),[fisc,setFisc]=useState([]),[uCount,setUCount]=useState(0),[fContagem,setFContagem]=useState({total:0,irregulares:0,regularizados:0})
+  const [sessoes,setSessoes]=useState([]),[fisc,setFisc]=useState([]),[uCount,setUCount]=useState(0)
+  const [periodo,setPeriodo]=useState("hoje"),[dataInicio,setDataInicio]=useState(""),[dataFim,setDataFim]=useState("")
   useEffect(()=>{
     api.get("/sessoes").then(r=>setSessoes(r.data||[])).catch(()=>{})
     api.get("/fiscalizacoes").then(r=>setFisc(r.data||[])).catch(()=>{})
     api.get("/usuarios/contagem").then(r=>setUCount(r.data.total||0)).catch(()=>{})
-    api.get("/fiscalizacoes/contagem").then(r=>setFContagem(r.data)).catch(()=>{})
   },[])
-  const hoje=new Date().toISOString().slice(0,10),sH=sessoes.filter(s=>s.criado_em?.startsWith(hoje)),rec=sH.reduce((a,s)=>a+parseFloat(s.valor_total||0),0),recT=sessoes.reduce((a,s)=>a+parseFloat(s.valor_total||0),0)
+  const hoje=new Date().toISOString().slice(0,10)
+  const filtrar=(lista)=>{
+    if(periodo==="hoje")return lista.filter(s=>s.criado_em?.startsWith(hoje))
+    if(periodo==="semana"){const d=new Date();d.setDate(d.getDate()-7);return lista.filter(s=>new Date(s.criado_em)>=d)}
+    if(periodo==="mes"){const d=new Date();d.setMonth(d.getMonth()-1);return lista.filter(s=>new Date(s.criado_em)>=d)}
+    if(periodo==="total")return lista
+    if(periodo==="custom"&&dataInicio)return lista.filter(s=>{const d=s.criado_em?.slice(0,10);return d>=dataInicio&&(!dataFim||d<=dataFim)})
+    return lista
+  }
+  const sF=filtrar(sessoes),fF=filtrar(fisc),rec=sF.reduce((a,s)=>a+parseFloat(s.valor_total||0),0),recT=sessoes.reduce((a,s)=>a+parseFloat(s.valor_total||0),0)
+  const multas=sF.filter(s=>false).length
   return(
     <div className="space-y-6">
-      <h2 className="text-2xl font-extrabold text-slate-800">Movimentacao</h2>
+      <div className="flex items-center justify-between flex-wrap gap-3"><h2 className="text-2xl font-extrabold text-slate-800">Movimentacao</h2>
+        <div className="flex items-center gap-2 flex-wrap">
+          {["hoje","semana","mes","total","custom"].map(p=><button key={p} onClick={()=>setPeriodo(p)} className={"px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition "+(periodo===p?"bg-blue-600 text-white":"bg-slate-100 text-slate-400 hover:bg-slate-200")}>{p==="hoje"?"Hoje":p==="semana"?"7 dias":p==="mes"?"30 dias":p==="total"?"Total":"Periodo"}</button>)}
+        </div>
+      </div>
+      {periodo==="custom"&&<div className="flex items-center gap-3"><input type="date" className="border border-slate-200 p-2 rounded-lg text-sm" value={dataInicio} onChange={e=>setDataInicio(e.target.value)}/><span className="text-slate-400">ate</span><input type="date" className="border border-slate-200 p-2 rounded-lg text-sm" value={dataFim} onChange={e=>setDataFim(e.target.value)}/></div>}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Usuarios</p><p className="text-4xl font-extrabold text-blue-600 mt-3">{uCount}</p><p className="text-xs text-slate-400 mt-1">cadastrados</p></div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Sessoes hoje</p><p className="text-4xl font-extrabold text-emerald-600 mt-3">{sH.length}</p><p className="text-xs text-slate-400 mt-1">ativadas</p></div>
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl text-white shadow-lg"><p className="text-blue-200 text-[11px] uppercase tracking-widest font-semibold">Receita hoje</p><p className="text-4xl font-extrabold mt-3">R$ {rec.toFixed(2)}</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Sessoes</p><p className="text-4xl font-extrabold text-emerald-600 mt-3">{sF.length}</p><p className="text-xs text-slate-400 mt-1">no periodo</p></div>
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl text-white shadow-lg"><p className="text-blue-200 text-[11px] uppercase tracking-widest font-semibold">Receita periodo</p><p className="text-4xl font-extrabold mt-3">R$ {rec.toFixed(2)}</p></div>
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Receita total</p><p className="text-4xl font-extrabold text-slate-800 mt-3">R$ {recT.toFixed(2)}</p></div>
       </div>
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Fiscalizacoes</p><p className="text-3xl font-extrabold text-blue-600 mt-2">{fContagem.total}</p></div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Irregulares</p><p className="text-3xl font-extrabold text-red-500 mt-2">{fContagem.irregulares}</p></div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Regularizados</p><p className="text-3xl font-extrabold text-emerald-600 mt-2">{fContagem.regularizados}</p></div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Fiscalizacoes</p><p className="text-3xl font-extrabold text-blue-600 mt-2">{fF.length}</p></div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Irregulares</p><p className="text-3xl font-extrabold text-red-500 mt-2">{fF.filter(f=>f.status_atual==="irregular"||f.status_atual==="aguardando").length}</p></div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Regularizados</p><p className="text-3xl font-extrabold text-emerald-600 mt-2">{fF.filter(f=>f.status_atual==="regularizado"||f.status_atual==="multado").length}</p></div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Sessoes recentes</p></div><div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">{sessoes.slice(0,12).map(s=><div key={s.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{s.placa}</p><p className="text-[11px] text-slate-400">{s.zona_nome}</p></div><div className="text-right"><span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${s.status==="ativa"?"bg-emerald-50 text-emerald-600 border border-emerald-200":"bg-slate-100 text-slate-500"}`}>{s.status}</span><p className="text-sm font-extrabold text-slate-700 mt-1">R${parseFloat(s.valor_total).toFixed(2)}</p></div></div>)}</div></div>
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Fiscalizacoes</p></div><div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">{fisc.slice(0,12).map(f=><div key={f.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{f.placa}</p><p className="text-[11px] text-slate-400">{f.fiscal_nome}</p></div><span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${f.status_atual==="regularizado"?"bg-emerald-50 text-emerald-600 border border-emerald-200":f.aguardando_prazo?"bg-amber-50 text-amber-600 border border-amber-200":"bg-red-50 text-red-600 border border-red-200"}`}>{f.status_atual==="regularizado"?"Regularizado":f.aguardando_prazo?"Aguardando":"Irregular"}</span></div>)}</div></div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Sessoes recentes</p></div><div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">{sF.slice(0,12).map(s=><div key={s.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{s.placa}</p><p className="text-[11px] text-slate-400">{s.zona_nome} · {new Date(s.criado_em).toLocaleString("pt-BR")}</p></div><div className="text-right"><span className={"text-[11px] font-semibold px-3 py-1 rounded-full border "+(s.status==="ativa"?"bg-emerald-50 text-emerald-600 border-emerald-200":"bg-slate-100 text-slate-500 border-slate-200")}>{s.status}</span><p className="text-sm font-extrabold text-slate-700 mt-1">R${parseFloat(s.valor_total).toFixed(2)}</p></div></div>)}</div></div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Fiscalizacoes</p></div><div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">{fF.slice(0,12).map(f=><div key={f.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{f.placa}</p><p className="text-[11px] text-slate-400">{f.fiscal_nome} · {new Date(f.criado_em).toLocaleString("pt-BR")}</p></div><span className={"text-[11px] font-semibold px-3 py-1 rounded-full border "+(f.status_atual==="regularizado"?"bg-emerald-50 text-emerald-600 border-emerald-200":f.status_atual==="aguardando"?"bg-amber-50 text-amber-600 border-amber-200":f.status_atual==="multado"?"bg-purple-50 text-purple-600 border-purple-200":"bg-red-50 text-red-600 border-red-200")}>{f.status_atual==="regularizado"?"Regularizado":f.status_atual==="aguardando"?"Aguardando":f.status_atual==="multado"?"Multado":"Irregular"}</span></div>)}</div></div>
       </div>
     </div>
   )
@@ -693,6 +730,70 @@ function PgFiscais(){
   )
 }
 
+
+function PgPerfil({usuario,onLogout}){
+  const navigate=useNavigate()
+  const [nome,setNome]=useState(usuario?.nome||"")
+  const [telefone,setTelefone]=useState(usuario?.telefone||"")
+  const [msg,setMsg]=useState("")
+  const [excluirAberto,setExcluirAberto]=useState(false)
+  const [senhaExcluir,setSenhaExcluir]=useState("")
+  const [excluirErro,setExcluirErro]=useState("")
+
+  const salvarPerfil=async()=>{
+    try{
+      await api.put("/usuarios/"+usuario.id,{nome,telefone})
+      const u={...usuario,nome,telefone}
+      localStorage.setItem("usuario",JSON.stringify(u))
+      setMsg("Perfil atualizado")
+    }catch(err){setMsg("Erro ao salvar")}
+  }
+
+  const excluirConta=async()=>{
+    setExcluirErro("")
+    if(!senhaExcluir){setExcluirErro("Digite sua senha");return}
+    try{
+      await api.post("/auth/verificar-senha",{email:usuario.email,senha:senhaExcluir})
+      if(!confirm("Tem certeza? Todos os seus dados serao apagados permanentemente."))return
+      await api.delete("/usuarios/"+usuario.id)
+      localStorage.clear()
+      navigate("/")
+    }catch(err){setExcluirErro("Senha incorreta")}
+  }
+
+  return(
+    <div className="space-y-6">
+      <h2 className="text-2xl font-extrabold text-slate-800">Meu Perfil</h2>
+      {msg&&<p className="text-sm p-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200">{msg}</p>}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center"><span className="text-white text-xl font-bold">{(usuario?.nome||"U").split(" ").map(n=>n[0]).join("").slice(0,2)}</span></div>
+          <div><p className="text-lg font-bold text-slate-800">{usuario?.nome}</p><p className="text-sm text-slate-400">{usuario?.email}</p><p className="text-xs text-slate-400 capitalize">{usuario?.perfil}</p></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label className="block text-xs font-semibold text-slate-400 mb-1.5">Nome</label><input className="w-full border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:border-blue-400" value={nome} onChange={e=>setNome(e.target.value)}/></div>
+          <div><label className="block text-xs font-semibold text-slate-400 mb-1.5">Telefone</label><input className="w-full border border-slate-200 p-3 rounded-lg text-sm focus:outline-none focus:border-blue-400" value={telefone} onChange={e=>setTelefone(e.target.value)}/></div>
+          <div><label className="block text-xs font-semibold text-slate-400 mb-1.5">Email</label><input className="w-full border border-slate-200 p-3 rounded-lg text-sm bg-slate-50 text-slate-400" value={usuario?.email||""} disabled/></div>
+          <div><label className="block text-xs font-semibold text-slate-400 mb-1.5">Saldo</label><input className="w-full border border-slate-200 p-3 rounded-lg text-sm bg-slate-50 text-slate-400" value={"R$ "+(parseFloat(usuario?.saldo||0).toFixed(2))} disabled/></div>
+        </div>
+        <button onClick={salvarPerfil} className="mt-4 bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-700">Salvar alteracoes</button>
+      </div>
+      <div className="bg-white p-6 rounded-2xl border border-red-100 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div><p className="text-lg font-bold text-red-600">Excluir conta</p><p className="text-sm text-slate-400">Esta acao e irreversivel. Todos os seus dados serao apagados.</p></div>
+          <button onClick={()=>setExcluirAberto(!excluirAberto)} className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer hover:bg-red-100 border border-red-200">{excluirAberto?"Cancelar":"Excluir conta"}</button>
+        </div>
+        {excluirAberto&&<div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl space-y-3">
+          <p className="text-sm text-red-500">Digite sua senha para confirmar a exclusao</p>
+          <input type="password" placeholder="Sua senha de login" className="w-full border border-red-200 p-3 rounded-lg text-sm" value={senhaExcluir} onChange={e=>setSenhaExcluir(e.target.value)}/>
+          {excluirErro&&<p className="text-red-500 text-xs">{excluirErro}</p>}
+          <button onClick={excluirConta} className="w-full bg-red-600 text-white py-3 rounded-lg text-sm font-semibold cursor-pointer hover:bg-red-700">Confirmar exclusao permanente</button>
+        </div>}
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard(){
   const navigate=useNavigate()
   const [usuario,setUsuario]=useState(null),[saldo,setSaldo]=useState("0.00"),[page,setPage]=useState(""),[mob,setMob]=useState(false)
@@ -714,7 +815,7 @@ export default function Dashboard(){
   const logout=()=>{localStorage.clear();navigate("/")}
   if(!usuario||!page)return null
   const perfil=usuario.perfil
-  const render=()=>{switch(page){case "inicio":return <PgInicio usuario={usuario} saldo={saldo}/>;case "veiculos":return <PgVeiculos usuario={usuario}/>;case "estacionar":return <PgEstacionar usuario={usuario} saldo={saldo} setSaldo={setSaldo}/>;case "carteira":return <PgCarteira usuario={usuario} saldo={saldo} setSaldo={setSaldo}/>;case "historico":return <PgHistorico usuario={usuario}/>;case "notifs":return <PgNotifs usuario={usuario} onIrEstacionar={()=>setPage("estacionar")}/>;case "consulta":return <PgConsulta usuario={usuario}/>;case "pendentes":return <PgPendentes/>;case "resumo":return <PgResumo/>;case "movimentacao":return <PgMovimentacao/>;case "ger-zonas":return <PgGerZonas/>;case "fiscais":return <PgFiscais/>;default:return null}}
+  const render=()=>{switch(page){case "inicio":return <PgInicio usuario={usuario} saldo={saldo}/>;case "veiculos":return <PgVeiculos usuario={usuario}/>;case "estacionar":return <PgEstacionar usuario={usuario} saldo={saldo} setSaldo={setSaldo}/>;case "carteira":return <PgCarteira usuario={usuario} saldo={saldo} setSaldo={setSaldo}/>;case "historico":return <PgHistorico usuario={usuario}/>;case "perfil":return <PgPerfil usuario={usuario} onLogout={logout}/>;case "notifs":return <PgNotifs usuario={usuario} onIrEstacionar={()=>setPage("estacionar")}/>;case "consulta":return <PgConsulta usuario={usuario}/>;case "pendentes":return <PgPendentes/>;case "resumo":return <PgResumo/>;case "movimentacao":return <PgMovimentacao/>;case "ger-zonas":return <PgGerZonas/>;case "fiscais":return <PgFiscais/>;default:return null}}
 
       return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#f1f5f9]">
