@@ -16,7 +16,7 @@ export default function Login() {
       localStorage.setItem('token', data.token)
       localStorage.setItem('usuario', JSON.stringify(data.usuario))
       navigate('/dashboard')
-    } catch (err) { setErro(err.response?.data?.erro || 'Email ou senha incorretos') }
+    } catch (err) { setErro((err.response?.data?.erro || '').includes('Incorrect') ? 'Email ou senha incorretos. Verifique e tente novamente.' : (err.response?.data?.erro || '').includes('User does not exist') ? 'Esta conta foi excluida ou nao existe.' : err.response?.data?.erro || 'Email ou senha incorretos') }
   }
   return (
     <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full">
