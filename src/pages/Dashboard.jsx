@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 import { useNavigate } from "react-router-dom"
 import api from "../services/api"
 
@@ -53,13 +54,13 @@ function Timer({sessao,onRenovar}){
   useEffect(()=>{const tk=()=>{const d=new Date(sessao.fim).getTime()-Date.now();if(d<=0){setTempo("EXPIRADO");setPct(0);return}const h=Math.floor(d/3600000),m=Math.floor((d%3600000)/60000),s=Math.floor((d%60000)/1000);setTempo(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`);setPct(Math.max(0,(d/(sessao.duracao_minutos*60000))*100))};tk();const id=setInterval(tk,1000);return()=>clearInterval(id)},[sessao.fim])
   const exp=tempo==="EXPIRADO",lo=pct<20&&!exp,md=pct<50&&!lo&&!exp
   return(
-    <div className={`p-5 rounded-xl border ${exp?"border-slate-200 bg-slate-50":lo?"border-red-200 bg-red-50/50":md?"border-amber-200 bg-amber-50/50":"border-emerald-200 bg-emerald-50/50"}`}>
+    <div className={"p-5 rounded-2xl border transition-all hover:shadow-md "+(exp?"border-slate-200 bg-gradient-to-r from-slate-50 to-white":lo?"border-red-200 bg-gradient-to-r from-red-50 to-white":md?"border-amber-200 bg-gradient-to-r from-amber-50 to-white":"border-emerald-200 bg-gradient-to-r from-emerald-50 to-white")}>
       <div className="flex justify-between items-center">
-        <div><p className="font-mono font-bold text-lg text-slate-800 tracking-wider">{sessao.placa}</p><p className="text-sm text-slate-500 mt-0.5">{sessao.zona_nome} · R${sessao.valor_total}</p></div>
-        <div className="text-right"><p className={`text-3xl font-mono font-extrabold tracking-tight ${exp?"text-slate-300":lo?"text-red-600":md?"text-amber-500":"text-emerald-600"}`}>{tempo}</p>{lo&&!exp&&<p className="text-[10px] text-red-500 mt-0.5 flex items-center justify-end gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"/>Expirando</p>}</div>
+        <div><p className="font-mono font-extrabold text-lg text-slate-800 tracking-wider">{sessao.placa}</p><p className="text-sm text-slate-500 mt-0.5">{sessao.zona_nome} · R${sessao.valor_total}</p></div>
+        <div className="text-right"><p className={"text-3xl font-mono font-extrabold tracking-tight "+(exp?"text-slate-300":lo?"text-red-600":md?"text-amber-500":"text-emerald-600")}>{tempo}</p>{lo&&!exp&&<p className="text-[10px] text-red-500 mt-0.5 flex items-center justify-end gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"/>Expirando</p>}</div>
       </div>
-      <div className="mt-4 h-2 bg-slate-200/50 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all duration-1000 ${exp?"bg-slate-300":lo?"bg-red-500":md?"bg-amber-400":"bg-emerald-500"}`} style={{width:`${pct}%`}}/></div>
-      {!exp&&<button onClick={()=>onRenovar(sessao)} className="mt-3 text-sm text-blue-600 font-semibold cursor-pointer hover:text-blue-800">Renovar credito</button>}
+      <div className="mt-4 h-2.5 bg-slate-100 rounded-full overflow-hidden"><div className={"h-full rounded-full transition-all duration-1000 "+(exp?"bg-slate-200":lo?"bg-gradient-to-r from-red-400 to-red-600":md?"bg-gradient-to-r from-amber-300 to-amber-500":"bg-gradient-to-r from-emerald-400 to-emerald-600")} style={{width:`${pct}%`}}/></div>
+      {!exp&&<button onClick={()=>onRenovar(sessao)} className="mt-3 text-sm text-blue-600 font-semibold cursor-pointer hover:text-blue-800 transition">Renovar credito</button>}
       {exp&&<p className="mt-3 text-sm text-slate-400">Expirado. Ative novamente na aba Estacionar.</p>}
     </div>
   )
@@ -68,83 +69,30 @@ function Timer({sessao,onRenovar}){
 function PgInicio({usuario, saldo}){
   const [sessoes,setSessoes]=useState([])
   const [notifs,setNotifs]=useState([])
+  const [historico,setHistorico]=useState([])
 
   useEffect(()=>{
-    api.get("/sessoes").then(r=>{ 
-      const d=Array.isArray(r.data)?r.data:[]; 
-      setSessoes(d.filter(s=>s.usuario_id===usuario.id && s.status==="ativa")) 
+    api.get("/sessoes").then(r=>{
+      const d=Array.isArray(r.data)?r.data:[]
+      setSessoes(d.filter(s=>s.usuario_id===usuario.id&&s.status==="ativa"))
+      const ultimos7=[]
+      for(let i=6;i>=0;i--){const dt=new Date();dt.setDate(dt.getDate()-i);const ds=dt.toISOString().slice(0,10);const dia=d.filter(s=>s.usuario_id===usuario.id&&s.criado_em?.startsWith(ds));ultimos7.push({dia:ds.slice(8,10)+"/"+ds.slice(5,7),sessoes:dia.length,valor:dia.reduce((a,s)=>a+parseFloat(s.valor_total||0),0)})}
+      setHistorico(ultimos7)
     }).catch(()=>{})
-    
     api.get("/notificacoes/"+usuario.id).then(r=>setNotifs((r.data||[]).filter(n=>!n.lido).slice(0,3))).catch(()=>{})
   },[usuario])
 
   return(
-    <div className="h-full flex flex-col gap-8">
-      
-      {/* Título */}
-      <div className="flex-shrink-0">
-        <h2 className="text-3xl font-extrabold text-slate-800">Olá, {usuario.nome?.split(" ")[0]}</h2>
-        <p className="text-slate-600">Gerencie seus estacionamentos em Itajuba</p>
+    <div className="space-y-8">
+      <div><h2 className="text-3xl font-extrabold text-slate-800">Ola, {usuario.nome?.split(" ")[0]}</h2><p className="text-slate-500 mt-1">Gerencie seus estacionamentos em Itajuba</p></div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-7 rounded-2xl text-white shadow-xl shadow-blue-600/20 relative overflow-hidden"><div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"/><p className="text-blue-200 text-xs uppercase tracking-widest font-semibold relative z-10">Saldo disponivel</p><p className="text-4xl font-extrabold mt-3 relative z-10">R$ {parseFloat(saldo||0).toFixed(2)}</p></div>
+        <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"><p className="text-slate-400 text-xs uppercase tracking-widest font-semibold">Creditos ativos</p><p className="text-4xl font-extrabold mt-3 text-emerald-600">{sessoes.length}</p><p className="text-slate-400 text-sm mt-1">em uso agora</p></div>
+        <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"><p className="text-slate-400 text-xs uppercase tracking-widest font-semibold">Alertas</p><p className="text-4xl font-extrabold mt-3 text-red-500">{notifs.length}</p><p className="text-slate-400 text-sm mt-1">nao lidos</p></div>
       </div>
-
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-shrink-0">
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-8 rounded-3xl text-white shadow-xl">
-          <p className="text-blue-100 text-sm uppercase tracking-wider font-medium">SALDO DISPONÍVEL</p>
-          <p className="text-5xl font-extrabold mt-4">R$ {parseFloat(saldo||0).toFixed(2)}</p>
-        </div>
-
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-          <p className="text-slate-400 text-sm uppercase tracking-wider font-medium">CRÉDITOS ATIVOS</p>
-          <p className="text-5xl font-extrabold mt-4 text-emerald-600">{sessoes.length}</p>
-          <p className="text-slate-500 mt-1">em uso agora</p>
-        </div>
-
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-          <p className="text-slate-400 text-sm uppercase tracking-wider font-medium">ALERTAS</p>
-          <p className="text-5xl font-extrabold mt-4 text-red-500">{notifs.length}</p>
-          <p className="text-slate-500 mt-1">não lidos</p>
-        </div>
-      </div>
-
-      {/* Área que ocupa o resto da tela */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
-        
-        {/* Notificações */}
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 flex flex-col">
-          <p className="font-semibold text-slate-500 uppercase tracking-wider mb-4">NOTIFICAÇÕES</p>
-          <div className="flex-1 overflow-auto">
-            {notifs.length > 0 ? (
-              notifs.map(n => (
-                <div key={n.id} className={`p-5 rounded-2xl mb-3 ${n.tipo==="multa"?"border-red-200 bg-red-50":"border-amber-200 bg-amber-50"}`}>
-                  <p className="text-slate-700">{n.mensagem}</p>
-                  <p className="text-xs text-slate-400 mt-2">{new Date(n.criado_em).toLocaleString("pt-BR")}</p>
-                </div>
-              ))
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-400">
-                Nenhuma notificação no momento
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Créditos Ativos */}
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 flex flex-col">
-          <p className="font-semibold text-slate-500 uppercase tracking-wider mb-4">CRÉDITOS ATIVOS</p>
-          <div className="flex-1 overflow-auto">
-            {sessoes.length > 0 ? (
-              sessoes.map(s => <Timer key={s.id} sessao={s} onRenovar={()=>alert("Use a aba Estacionar pra renovar")}/>)
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <Ic d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" c="w-28 h-28 text-slate-200"/>
-                <p className="text-xl text-slate-400 mt-8">Nenhum crédito ativo</p>
-                <p className="text-slate-400 mt-3 max-w-xs">Vá até a aba Estacionar para ativar um estacionamento.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      {historico.length>0&&<div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Seus gastos nos ultimos 7 dias</p><div style={{width:"100%",height:180}}><ResponsiveContainer><BarChart data={historico} margin={{top:5,right:5,bottom:5,left:5}}><XAxis dataKey="dia" tick={{fontSize:11,fill:"#94a3b8"}} axisLine={false} tickLine={false}/><YAxis hide/><Tooltip formatter={(v)=>"R$ "+v.toFixed(2)} labelFormatter={(l)=>"Dia "+l} contentStyle={{borderRadius:8,border:"1px solid #e2e8f0",fontSize:12}}/><Bar dataKey="valor" fill="#3b82f6" radius={[6,6,0,0]} maxBarSize={32}/></BarChart></ResponsiveContainer></div></div>}
+      {notifs.length>0&&<div className="space-y-3"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Alertas recentes</p>{notifs.map(n=><div key={n.id} className={"p-4 rounded-xl border transition-all hover:shadow-md "+(n.tipo==="multa"?"border-red-200 bg-gradient-to-r from-red-50 to-white":"border-amber-200 bg-gradient-to-r from-amber-50 to-white")}><span className={"text-[10px] font-bold uppercase tracking-wider "+(n.tipo==="multa"?"text-red-400":"text-amber-400")}>{n.tipo}</span><p className="text-sm text-slate-700 mt-1">{n.mensagem}</p><p className="text-[11px] text-slate-400 mt-1">{new Date(n.criado_em).toLocaleString("pt-BR")}</p></div>)}</div>}
+      {sessoes.length>0?<div><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Creditos ativos</p><div className="space-y-3">{sessoes.map(s=><Timer key={s.id} sessao={s} onRenovar={()=>alert("Use a aba Estacionar pra renovar")}/>)}</div></div>:<div className="bg-gradient-to-br from-slate-50 to-white p-12 rounded-2xl border border-slate-200 text-center"><Ic d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" c="w-16 h-16 text-slate-200 mx-auto"/><p className="text-slate-400 mt-4 text-lg">Nenhum credito ativo</p><p className="text-slate-400 text-sm mt-1">Va ate a aba Estacionar para ativar.</p></div>}
     </div>
   )
 }
@@ -419,7 +367,8 @@ function PgEstacionar({usuario,saldo,setSaldo}){
               <div><label className="block text-xs font-semibold text-slate-400 mb-2">Duracao</label><div className="grid grid-cols-3 gap-2">{[{v:30,l:"30 min"},{v:60,l:"1 hora"},{v:120,l:"2 horas"}].map(d=><button key={d.v} onClick={()=>setDur(d.v)} className={`py-2.5 rounded-lg text-sm font-semibold cursor-pointer transition-all ${dur===d.v?"bg-blue-600 text-white shadow-lg shadow-blue-600/20":"bg-slate-100 text-slate-400 hover:bg-slate-200"}`}>{d.l}</button>)}</div></div>
               <div className="flex justify-between items-center py-3 border-t border-slate-100"><span className="text-slate-400">Total</span><span className="text-2xl font-extrabold text-slate-800">R$ {(parseFloat(zSel.preco_hora)*dur/60).toFixed(2)}</span></div>
               <p className="text-xs text-slate-400 text-center">Saldo: R$ {parseFloat(saldo||0).toFixed(2)}</p>
-              <button onClick={ativar} className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold cursor-pointer hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 text-sm">Ativar Credito</button>
+              <div className="flex items-center gap-2 py-2"><input type="checkbox" id="autoRenew" className="w-4 h-4 accent-blue-600 cursor-pointer"/><label htmlFor="autoRenew" className="text-xs text-slate-500 cursor-pointer">Renovar automaticamente ao expirar</label></div>
+              <button onClick={ativar} className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl font-semibold cursor-pointer hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-600/20 text-sm">Ativar Credito</button>
             </div>):(<div className="text-center py-16"><Ic d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" c="w-14 h-14 text-slate-200 mx-auto"/><p className="text-slate-400 mt-4 text-sm">Selecione uma zona no mapa</p></div>)}
           </div>
         </div>
@@ -438,7 +387,7 @@ function PgCarteira({usuario,saldo,setSaldo}){
       <h2 className="text-2xl font-extrabold text-slate-800">Carteira</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
         <div className="space-y-5 h-full">
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-xl text-white"><p className="text-blue-200 text-xs uppercase tracking-wider font-medium">Saldo disponivel</p><p className="text-4xl font-extrabold mt-2">R$ {parseFloat(saldo||0).toFixed(2)}</p></div>
+          <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-7 rounded-2xl text-white shadow-xl shadow-blue-600/20 relative overflow-hidden"><p className="text-blue-200 text-xs uppercase tracking-wider font-medium">Saldo disponivel</p><p className="text-4xl font-extrabold mt-2">R$ {parseFloat(saldo||0).toFixed(2)}</p></div>
           {msg&&<p className={`text-sm p-3 rounded-lg ${msg.includes("Erro")||msg.includes("Informe")?"bg-red-50 text-red-600 border border-red-200":"bg-emerald-50 text-emerald-600 border border-emerald-200"}`}>{msg}</p>}
           <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm">
             <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Adicionar creditos</p>
@@ -577,10 +526,12 @@ function PgMovimentacao(){
     return lista
   }
   const sF=filtrar(sessoes),fF=filtrar(fisc),rec=sF.reduce((a,s)=>a+parseFloat(s.valor_total||0),0),recT=sessoes.reduce((a,s)=>a+parseFloat(s.valor_total||0),0)
-  const multas=sF.filter(s=>false).length
+  const chartData=[]
+  for(let i=6;i>=0;i--){const dt=new Date();dt.setDate(dt.getDate()-i);const ds=dt.toISOString().slice(0,10);const dia=sF.filter(s=>s.criado_em?.startsWith(ds));chartData.push({dia:ds.slice(8,10)+"/"+ds.slice(5,7),receita:dia.reduce((a,s)=>a+parseFloat(s.valor_total||0),0),sessoes:dia.length})}
+  const pieData=[{name:"Irregulares",value:fF.filter(f=>f.status_atual==="irregular"||f.status_atual==="aguardando").length,cor:"#ef4444"},{name:"Regularizados",value:fF.filter(f=>f.status_atual==="regularizado"||f.status_atual==="multado").length,cor:"#10b981"}].filter(d=>d.value>0)
   return(
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3"><h2 className="text-2xl font-extrabold text-slate-800">Movimentacao</h2>
+      <div className="flex items-center justify-between flex-wrap gap-3"><h2 className="text-2xl font-extrabold text-slate-800">Movimentacao</h2><button onClick={()=>{const w=window.open("","","width=800,height=600");w.document.write("<html><head><title>Relatorio Zona Azul</title><style>body{font-family:sans-serif;padding:30px}table{width:100%;border-collapse:collapse;margin:15px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#f1f5f9}.h{color:#1e40af;margin-bottom:5px}.sub{color:#64748b;font-size:13px;margin-bottom:20px}</style></head><body><h1 class=h>Relatorio Zona Azul Digital</h1><p class=sub>Periodo: "+(periodo==="hoje"?"Hoje":periodo==="semana"?"Ultimos 7 dias":periodo==="mes"?"Ultimos 30 dias":periodo==="total"?"Total":"Customizado")+" | Gerado em: "+new Date().toLocaleString("pt-BR")+"</p><h3>Resumo</h3><table><tr><th>Sessoes</th><th>Receita</th><th>Fiscalizacoes</th><th>Usuarios</th></tr><tr><td>"+sF.length+"</td><td>R$ "+rec.toFixed(2)+"</td><td>"+fF.length+"</td><td>"+uCount+"</td></tr></table><h3>Sessoes</h3><table><tr><th>Placa</th><th>Zona</th><th>Valor</th><th>Status</th><th>Data</th></tr>"+sF.slice(0,50).map(s=>"<tr><td>"+s.placa+"</td><td>"+s.zona_nome+"</td><td>R$"+parseFloat(s.valor_total).toFixed(2)+"</td><td>"+s.status+"</td><td>"+new Date(s.criado_em).toLocaleString("pt-BR")+"</td></tr>").join("")+"</table><h3>Fiscalizacoes</h3><table><tr><th>Placa</th><th>Fiscal</th><th>Status</th><th>Data</th></tr>"+fF.slice(0,50).map(f=>"<tr><td>"+f.placa+"</td><td>"+f.fiscal_nome+"</td><td>"+(f.status_atual||f.resultado)+"</td><td>"+new Date(f.criado_em).toLocaleString("pt-BR")+"</td></tr>").join("")+"</table></body></html>");w.document.close();w.print()}} className="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:bg-slate-200 transition ml-2">Exportar PDF</button>
         <div className="flex items-center gap-2 flex-wrap">
           {["hoje","semana","mes","total","custom"].map(p=><button key={p} onClick={()=>setPeriodo(p)} className={"px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition "+(periodo===p?"bg-blue-600 text-white":"bg-slate-100 text-slate-400 hover:bg-slate-200")}>{p==="hoje"?"Hoje":p==="semana"?"7 dias":p==="mes"?"30 dias":p==="total"?"Total":"Periodo"}</button>)}
         </div>
@@ -596,6 +547,10 @@ function PgMovimentacao(){
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Fiscalizacoes</p><p className="text-3xl font-extrabold text-blue-600 mt-2">{fF.length}</p></div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Irregulares</p><p className="text-3xl font-extrabold text-red-500 mt-2">{fF.filter(f=>f.status_atual==="irregular"||f.status_atual==="aguardando").length}</p></div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center"><p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">Regularizados</p><p className="text-3xl font-extrabold text-emerald-600 mt-2">{fF.filter(f=>f.status_atual==="regularizado"||f.status_atual==="multado").length}</p></div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Receita por dia</p><div style={{width:"100%",height:200}}><ResponsiveContainer><BarChart data={chartData}><XAxis dataKey="dia" tick={{fontSize:11,fill:"#94a3b8"}} axisLine={false} tickLine={false}/><YAxis hide/><Tooltip formatter={(v)=>"R$ "+v.toFixed(2)} contentStyle={{borderRadius:8,border:"1px solid #e2e8f0",fontSize:12}}/><Bar dataKey="receita" fill="#3b82f6" radius={[6,6,0,0]} maxBarSize={36}/></BarChart></ResponsiveContainer></div></div>
+        {pieData.length>0&&<div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Fiscalizacoes</p><div style={{width:"100%",height:200}}><ResponsiveContainer><PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" label={({name,value})=>name+" ("+value+")"}>{pieData.map((d,i)=><Cell key={i} fill={d.cor}/>)}</Pie><Tooltip contentStyle={{borderRadius:8,border:"1px solid #e2e8f0",fontSize:12}}/></PieChart></ResponsiveContainer></div></div>}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div className="px-6 py-4 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Sessoes recentes</p></div><div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">{sF.slice(0,12).map(s=><div key={s.id} className="flex items-center justify-between px-6 py-3.5"><div><p className="font-mono font-bold text-sm text-slate-800">{s.placa}</p><p className="text-[11px] text-slate-400">{s.zona_nome} · {new Date(s.criado_em).toLocaleString("pt-BR")}</p></div><div className="text-right"><span className={"text-[11px] font-semibold px-3 py-1 rounded-full border "+(s.status==="ativa"?"bg-emerald-50 text-emerald-600 border-emerald-200":"bg-slate-100 text-slate-500 border-slate-200")}>{s.status}</span><p className="text-sm font-extrabold text-slate-700 mt-1">R${parseFloat(s.valor_total).toFixed(2)}</p></div></div>)}</div></div>
